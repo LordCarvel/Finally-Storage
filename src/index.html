@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finally Storage — Fechamento de Caixa</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    Finally Storage — Fechamento de Caixa
+  </header>
+
+  <main>
+    <section id="motoboys-section">
+      <h2>Motoboys</h2>
+      <table id="motoboy-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Entregas</th>
+            <th>Valor (R$)</th>
+            <th>Ajuste (R$)</th>
+            <th>Total (R$)</th>
+          </tr>
+        </thead>
+        <tbody id="motoboy-body">
+          <tr>
+            <td><input type="text" placeholder="Nome"></td>
+            <td><input type="number" placeholder="0"></td>
+            <td><input type="number" placeholder="0" step="0.01"></td>
+            <td><input type="number" placeholder="0" step="0.01"></td>
+            <td class="total">0,00</td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-add" id="addMotoboy">+ Adicionar Motoboy</button>
+      <div class="totais">Total Motoboys: R$ <span id="totalMotoboys">0,00</span></div>
+    </section>
+
+    <section id="caixa-section">
+      <h2>Caixa Final</h2>
+      <table>
+        <tr><td>Dinheiro (R$):</td><td><input type="number" id="dinheiro" step="0.01"></td></tr>
+        <tr><td>Cartão (R$):</td><td><input type="number" id="cartao" step="0.01"></td></tr>
+        <tr><td>Online (R$):</td><td><input type="number" id="online" step="0.01"></td></tr>
+      </table>
+      <div class="totais">Total Caixa: R$ <span id="totalCaixa">0,00</span></div>
+    </section>
+
+    <button class="btn btn-add" id="exportImageBtn">Exportar imagem</button>
+  </main>
+
+  <footer>
+    © 2025 — <a href="https://github.com/LordCarvel" target="_blank" style="color:inherit;text-decoration:none;">LordCarvel</a> — Todos os direitos reservados.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

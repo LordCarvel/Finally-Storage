@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+  --font-lato: 'Lato', Arial, Helvetica, sans-serif;
+  --font-poppins: 'Poppins', Arial, Helvetica, sans-serif;
+  --font-roboto: 'Roboto', Arial, Helvetica, sans-serif;
+  --font-montserrat: 'Montserrat', Arial, Helvetica, sans-serif;
+  --font-ibm-plex-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-inter: 'Inter', Arial, Helvetica, sans-serif;
+  
+  --color-white: #FFFFFF;
+  --color-dark-white: #FCFAFA;
+  --color-light-gray-model-one: #d9d9d96c;
+  --color-light-gray-model-two: #D9D9D9;
+  --color-gray: #D4D4D4;
+  --color-blue: #77A2E8;
+  --color-black: #000000;
+  --color-yellow: #FEE440;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-dark-white);
+  color: var(--color-black);
+  font-family: var(--font-inter);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  padding: 1rem 2rem;
+  text-align: center;
+  font-family: var(--font-poppins);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+section {
+  background-color: var(--color-white);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+h2 {
+  font-family: var(--font-montserrat);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--color-black);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--color-light-gray-model-two);
+}
+
+th {
+  background-color: var(--color-light-gray-model-one);
+  font-weight: 600;
+}
+
+input[type="text"], input[type="number"] {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-gray);
+  border-radius: 6px;
+  font-family: var(--font-inter);
+  font-size: 0.95rem;
+  outline: none;
+  transition: 0.2s;
+}
+
+input:focus {
+  border-color: var(--color-blue);
+}
+
+.btn {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  font-family: var(--font-poppins);
+  margin-top: 0.5rem;
+}
+
+.btn-add {
+  background-color: var(--color-blue);
+  color: var(--color-white);
+}
+
+.btn-add:hover {
+  background-color: #5b8edb;
+}
+
+.totais {
+  font-family: var(--font-ibm-plex-mono);
+  margin-top: 1rem;
+  font-size: 1rem;
+}
+
+footer {
+  background-color: var(--color-light-gray-model-two);
+  color: var(--color-black);
+  text-align: center;
+  padding: 0.8rem;
+  font-family: var(--font-lato);
+  font-size: 0.9rem;
+}
+
+.compact-mode button {
+  display: none !important;
+}
+
+.compact-mode {
+  width: 600px;
+  margin: 0 auto;
+  background: var(--color-white);
+  box-shadow: none;
+  border: 1px solid var(--color-light-gray-model-two);
+  padding: 20px;
+}
