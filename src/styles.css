@@ -151,3 +151,67 @@ footer {
   border: 1px solid var(--color-light-gray-model-two);
   padding: 20px;
 }
+
+/* Responsive improvements for mobile devices */
+@media (max-width: 800px) {
+  header {
+    font-size: 1.1rem;
+    padding: 0.8rem 1rem;
+  }
+
+  main {
+    padding: 1rem;
+  }
+
+  section {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  /* Allow horizontal scrolling for wide tables on small screens */
+  table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  th, td {
+    white-space: nowrap;
+  }
+
+  input[type="text"], input[type="number"] {
+    font-size: 0.95rem;
+    padding: 0.5rem;
+  }
+
+  .btn {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .totais {
+    font-size: 0.95rem;
+  }
+
+  .compact-mode {
+    width: 100%;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  header {
+    font-size: 1rem;
+  }
+
+  th, td {
+    padding: 0.4rem;
+  }
+
+  .totais {
+    font-size: 0.9rem;
+  }
+}
