@@ -47,7 +47,7 @@ document.addEventListener("input", e => {
 });
 
 document.getElementById("exportImageBtn").addEventListener("click", () => {
-  const resumoPanel = document.createElement('div');
+  // (Removido: já declarado abaixo)
   resumoPanel.id = 'resumo-panel';
   resumoPanel.style.position = 'fixed';
   resumoPanel.style.left = '50%';
@@ -65,10 +65,8 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   resumoPanel.style.color = '#222';
   resumoPanel.style.overflowY = 'auto';
 
-  // Título
   resumoPanel.innerHTML = `<h2 style="text-align:center;margin-bottom:1.2rem;color:#77A2E8;font-family:Poppins,sans-serif;font-size:1.3rem;">Fechamento de Caixa</h2>`;
 
-  // Motoboys
   const motoboys = [];
   tbody.querySelectorAll('tr').forEach(row => {
     const nome = row.children[0].querySelector('input').value || '';
@@ -87,22 +85,32 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
     motoboysHtml += `<tr><td style="padding:4px 6px;">${m.nome}</td><td>${m.entregas}</td><td>${parseFloat(m.valor||0).toFixed(2).replace('.',',')}</td><td>${m.ajusteSign}${parseFloat(m.ajuste||0).toFixed(2).replace('.',',')}</td><td><strong>${m.total}</strong></td></tr>`;
   });
   motoboysHtml += `</table></div>`;
-  resumoPanel.innerHTML += motoboysHtml;
+    const overlay = document.createElement('div');
+    overlay.id = 'preview-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.background = 'rgba(0,0,0,0.35)';
+    overlay.style.zIndex = '99998';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
 
-  // Total Motoboys
-  resumoPanel.innerHTML += `<div style="margin-bottom:1.2rem;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;"><strong>Total Motoboys:</strong> R$ <span>${totalMotoboys.innerText}</span></div>`;
-
-  // Caixa Final
-  resumoPanel.innerHTML += `<div style="margin-bottom:1.2rem;"><strong>Caixa Final</strong><table style="width:100%;margin-top:0.5rem;border-collapse:collapse;font-size:0.98rem;">` +
-    `<tr><td>Dinheiro:</td><td>R$ ${parseFloat(dinheiro.value||0).toFixed(2).replace('.',',')}</td></tr>` +
-    `<tr><td>Cartão:</td><td>R$ ${parseFloat(cartao.value||0).toFixed(2).replace('.',',')}</td></tr>` +
-    `<tr><td>Online:</td><td>R$ ${parseFloat(online.value||0).toFixed(2).replace('.',',')}</td></tr>` +
-    `</table></div>`;
-  resumoPanel.innerHTML += `<div style="font-family:'IBM Plex Mono',monospace;font-size:1.05rem;"><strong>Total Caixa:</strong> R$ <span>${totalCaixa.innerText}</span></div>`;
-
-  // Rodapé
-  resumoPanel.innerHTML += `<div style="margin-top:1.5rem;text-align:center;font-size:0.92rem;color:#888;">© 2025 — <a href="https://github.com/LordCarvel" target="_blank" style="color:#77A2E8;text-decoration:none;">LordCarvel</a></div>`;
-
+    const resumoPanel = document.createElement('div');
+    resumoPanel.id = 'resumo-panel';
+    resumoPanel.style.position = 'relative';
+    resumoPanel.style.background = '#fff';
+    resumoPanel.style.border = '2px solid #77A2E8';
+    resumoPanel.style.borderRadius = '16px';
+    resumoPanel.style.boxShadow = '0 4px 24px rgba(0,0,0,0.12)';
+    resumoPanel.style.padding = '2rem 1.2rem 3.5rem 1.2rem';
+    resumoPanel.style.maxWidth = '95vw';
+    resumoPanel.style.width = '420px';
+    resumoPanel.style.fontFamily = 'Inter, Arial, sans-serif';
+    resumoPanel.style.color = '#222';
+    resumoPanel.style.overflowY = 'auto';
   document.body.appendChild(resumoPanel);
 
   setTimeout(() => {
