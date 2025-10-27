@@ -152,7 +152,23 @@ footer {
   padding: 20px;
 }
 
-/* Responsive improvements for mobile devices */
+.ajuste-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.ajuste-cell select.ajuste-sign {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--color-gray);
+  border-radius: 6px;
+  background: white;
+  font-weight: 600;
+}
+.ajuste-cell input.ajuste-input {
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+}
+
 @media (max-width: 800px) {
   header {
     font-size: 1.1rem;
@@ -168,7 +184,6 @@ footer {
     border-radius: 8px;
   }
 
-  /* Allow horizontal scrolling for wide tables on small screens */
   table {
     display: block;
     width: 100%;

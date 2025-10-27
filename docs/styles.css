@@ -152,6 +152,24 @@ footer {
   padding: 20px;
 }
 
+/* Ajustes de estilo para o seletor de ajuste (+/-) */
+.ajuste-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.ajuste-cell select.ajuste-sign {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--color-gray);
+  border-radius: 6px;
+  background: white;
+  font-weight: 600;
+}
+.ajuste-cell input.ajuste-input {
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+}
+
 /* Responsive improvements for mobile devices */
 @media (max-width: 800px) {
   header {
