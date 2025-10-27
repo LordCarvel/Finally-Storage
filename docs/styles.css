@@ -208,7 +208,8 @@ footer {
     background: var(--color-light-gray-model-one);
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    padding: 0.7rem 0.5rem;
+    /* reduced padding to avoid right-side clipping in very small viewports */
+    padding: 0.5rem 0.4rem;
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
@@ -225,8 +226,9 @@ footer {
     content: attr(data-label);
     font-weight: 600;
     color: var(--color-blue);
-    min-width: 110px;
-    font-size: 0.97rem;
+    /* slightly narrower label column so numbers have more room on very small screens */
+    min-width: 90px;
+    font-size: 0.95rem;
   }
   #motoboy-table .total {
     color: var(--color-black);
@@ -267,11 +269,19 @@ footer {
     font-size: 1rem;
   }
 
+  #motoboy-table tr {
+    padding: 0.5rem 0.2rem;
+  }
+  #motoboy-table td:before {
+    min-width: 70px;
+    font-size: 0.92rem;
+  }
+
   th, td {
-    padding: 0.4rem;
+    padding: 0.35rem;
   }
 
   .totais {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
 }
