@@ -70,12 +70,16 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   resumoPanel.style.padding = '1.6rem 1rem 3.6rem 1rem';
   resumoPanel.style.maxWidth = '95vw';
   resumoPanel.style.width = '720px';
+  resumoPanel.style.maxHeight = 'calc(100vh - 40px)';
+  resumoPanel.style.overflow = 'hidden';
   resumoPanel.style.fontFamily = 'Inter, Arial, sans-serif';
   resumoPanel.style.color = '#222';
   resumoPanel.style.overflowY = 'auto';
 
   const contentDiv = document.createElement('div');
-  contentDiv.style.paddingBottom = '0.6rem';
+  contentDiv.style.padding = '0.8rem 0.4rem 0.6rem 0.4rem';
+  contentDiv.style.overflowY = 'auto';
+  contentDiv.style.maxHeight = 'calc(100vh - 260px)';
 
   const makeResumoHtml = () => {
     let html = `<h2 style="text-align:center;margin-bottom:1.2rem;color:#77A2E8;font-family:Poppins,sans-serif;font-size:1.3rem;">Fechamento de Caixa</h2>`;
@@ -117,7 +121,7 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   resumoPanel.appendChild(contentDiv);
 
   const btnsDiv = document.createElement('div');
-  btnsDiv.style.position = 'absolute';
+  btnsDiv.style.position = 'sticky';
   btnsDiv.style.left = '0';
   btnsDiv.style.bottom = '0';
   btnsDiv.style.width = '100%';
@@ -138,7 +142,12 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   btnCancel.style.padding = '0.55rem 0.9rem';
   btnCancel.style.fontWeight = '600';
   btnCancel.style.cursor = 'pointer';
-  btnCancel.onclick = () => document.body.removeChild(overlay);
+  const closeOverlay = () => {
+    document.removeEventListener('keydown', escListener);
+    if (previewWrapper) previewWrapper.remove();
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  };
+  btnCancel.onclick = closeOverlay;
 
   const btnGenerate = document.createElement('button');
   btnGenerate.textContent = 'Gerar pré-visualização';
@@ -176,10 +185,12 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
       img.style.borderRadius = '10px';
       img.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
 
-      previewWrapper = document.createElement('div');
-      previewWrapper.style.margin = '0.6rem 0 3rem 0';
+  previewWrapper = document.createElement('div');
+  previewWrapper.style.margin = '0.6rem 0 1rem 0';
+  previewWrapper.style.display = 'flex';
+  previewWrapper.style.justifyContent = 'center';
       previewWrapper.appendChild(img);
-      resumoPanel.insertBefore(previewWrapper, btnsDiv);
+  resumoPanel.insertBefore(previewWrapper, btnsDiv);
       btnDownload.disabled = false;
     }).catch(err => {
       console.error(err);
@@ -196,6 +207,13 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
     link.href = lastPreviewData;
     link.click();
   };
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeOverlay();
+  });
+
+  const escListener = (e) => { if (e.key === 'Escape') closeOverlay(); };
+  document.addEventListener('keydown', escListener);
 
   btnsDiv.appendChild(btnCancel);
   btnsDiv.appendChild(btnGenerate);
