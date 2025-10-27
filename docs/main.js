@@ -71,7 +71,8 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   resumoPanel.style.maxWidth = '95vw';
   resumoPanel.style.width = '720px';
   resumoPanel.style.maxHeight = 'calc(100vh - 40px)';
-  resumoPanel.style.overflow = 'hidden';
+  // permite rolagem interna para que o painel nunca quebre a viewport
+  resumoPanel.style.overflow = 'auto';
   resumoPanel.style.fontFamily = 'Inter, Arial, sans-serif';
   resumoPanel.style.color = '#222';
   resumoPanel.style.overflowY = 'auto';
@@ -172,12 +173,15 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
 
   let lastPreviewData = null;
   let previewWrapper = null;
+  let generateCounter = 0;
 
   btnGenerate.onclick = () => {
+    const thisGen = ++generateCounter;
     btnGenerate.disabled = true;
     contentDiv.innerHTML = makeResumoHtml();
     if (previewWrapper) { previewWrapper.remove(); previewWrapper = null; }
     html2canvas(contentDiv, { scale: 2, useCORS: true }).then(canvas => {
+      if (thisGen !== generateCounter) return;
       lastPreviewData = canvas.toDataURL('image/png');
       const img = document.createElement('img');
       img.src = lastPreviewData;
@@ -185,18 +189,22 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
       img.style.borderRadius = '10px';
       img.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
 
-  previewWrapper = document.createElement('div');
-  previewWrapper.style.margin = '0.6rem 0 1rem 0';
-  previewWrapper.style.display = 'flex';
-  previewWrapper.style.justifyContent = 'center';
+      previewWrapper = document.createElement('div');
+      previewWrapper.style.margin = '0.6rem 0 1rem 0';
+      previewWrapper.style.display = 'flex';
+      previewWrapper.style.justifyContent = 'center';
       previewWrapper.appendChild(img);
-  resumoPanel.insertBefore(previewWrapper, btnsDiv);
+
+      if (resumoPanel.contains(previewWrapper) === false) {
+        resumoPanel.insertBefore(previewWrapper, btnsDiv);
+      }
       btnDownload.disabled = false;
+      previewWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }).catch(err => {
       console.error(err);
       alert('Erro ao gerar pré-visualização. Veja o console para detalhes.');
     }).finally(() => {
-      btnGenerate.disabled = false;
+      if (thisGen === generateCounter) btnGenerate.disabled = false;
     });
   };
 
