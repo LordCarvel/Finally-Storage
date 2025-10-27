@@ -49,6 +49,7 @@ document.addEventListener("input", e => {
 document.getElementById("exportImageBtn").addEventListener("click", () => {
   const content = document.querySelector("main");
 
+  // Clone the content and expand it so html2canvas captures all columns (including overflowed parts)
   const clone = content.cloneNode(true);
   clone.style.position = 'fixed';
   clone.style.left = '0';
@@ -59,7 +60,6 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   clone.style.height = 'auto';
   clone.style.overflow = 'visible';
   clone.id = 'export-clone';
-  document.body.appendChild(clone);
 
   clone.querySelectorAll('input, select, textarea').forEach((el, i) => {
     try {
@@ -70,6 +70,15 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
       }
     } catch (e) { /* ignore */ }
   });
+
+  const totaisDiv = document.getElementById('totalMotoboys')?.parentElement;
+  if (totaisDiv) {
+    const cloneTotais = totaisDiv.cloneNode(true);
+    cloneTotais.style.marginTop = '1.5rem';
+    clone.appendChild(cloneTotais);
+  }
+
+  document.body.appendChild(clone);
 
   setTimeout(() => {
     html2canvas(clone, { scale: 2, useCORS: true }).then(canvas => {

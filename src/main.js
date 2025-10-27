@@ -56,12 +56,10 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
   clone.style.top = '0';
   clone.style.zIndex = '99999';
   clone.style.background = window.getComputedStyle(content).backgroundColor || '#fff';
-  // Expand width to full scrollWidth so horizontal overflow is visible
   clone.style.width = content.scrollWidth + 'px';
   clone.style.height = 'auto';
   clone.style.overflow = 'visible';
   clone.id = 'export-clone';
-  document.body.appendChild(clone);
 
   // Ensure all inputs show their values in the clone (some form values aren't copied by cloneNode)
   clone.querySelectorAll('input, select, textarea').forEach((el, i) => {
@@ -74,7 +72,16 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
     } catch (e) { /* ignore */ }
   });
 
-  // Give the browser a moment to render the clone
+  // Garantir que o total dos motoboys apareça na imagem exportada
+  const totaisDiv = document.getElementById('totalMotoboys')?.parentElement;
+  if (totaisDiv) {
+    const cloneTotais = totaisDiv.cloneNode(true);
+    cloneTotais.style.marginTop = '1.5rem';
+    clone.appendChild(cloneTotais);
+  }
+
+  document.body.appendChild(clone);
+
   setTimeout(() => {
     html2canvas(clone, { scale: 2, useCORS: true }).then(canvas => {
       const link = document.createElement("a");
@@ -82,7 +89,6 @@ document.getElementById("exportImageBtn").addEventListener("click", () => {
       link.href = canvas.toDataURL("image/png");
       link.click();
 
-      // cleanup
       document.body.removeChild(clone);
     }).catch(err => {
       document.body.removeChild(clone);

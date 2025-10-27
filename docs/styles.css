@@ -194,6 +194,48 @@ footer {
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
   }
+  
+  /* Card layout for tables on mobile */
+  #motoboy-table, #motoboy-table thead, #motoboy-table tbody, #motoboy-table tr {
+    display: block;
+    width: 100%;
+  }
+  #motoboy-table thead {
+    display: none;
+  }
+  #motoboy-table tr {
+    margin-bottom: 1rem;
+    background: var(--color-light-gray-model-one);
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    padding: 0.7rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  #motoboy-table td {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+    border: none;
+    font-size: 1rem;
+  }
+  #motoboy-table td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-blue);
+    min-width: 110px;
+    font-size: 0.97rem;
+  }
+  #motoboy-table .total {
+    color: var(--color-black);
+    font-weight: 700;
+  }
+  /* Hide table borders */
+  #motoboy-table td, #motoboy-table th {
+    border: none !important;
+  }
 
   th, td {
     white-space: nowrap;
