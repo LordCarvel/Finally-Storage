@@ -39,8 +39,7 @@ body {
 }
 
 header {
-  background-color: var(--color-blue);
-  color: var(--color-white);
+  color: var(--color-blue);
   padding: 1rem 2rem;
   text-align: center;
   font-family: var(--font-poppins);
