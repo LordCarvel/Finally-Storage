@@ -39,8 +39,7 @@ body {
 }
 
 header {
-  background-color: var(--color-blue);
-  color: var(--color-white);
+  color: var(--color-blue);
   padding: 1rem 2rem;
   text-align: center;
   font-family: var(--font-poppins);
@@ -184,7 +183,6 @@ footer {
     border-radius: 8px;
   }
 
-  /* Card layout for tables on mobile */
   #motoboy-table, #motoboy-table thead, #motoboy-table tbody, #motoboy-table tr {
     display: block;
     width: 100%;
@@ -197,8 +195,7 @@ footer {
     background: var(--color-light-gray-model-one);
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    /* reduced padding to avoid right-side clipping in very small viewports */
-    padding: 0.5rem 0.4rem;
+    padding: 0.5rem 0.2rem;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -215,7 +212,6 @@ footer {
     content: attr(data-label);
     font-weight: 600;
     color: var(--color-blue);
-    /* slightly narrower label column so numbers have more room on very small screens */
     min-width: 90px;
     font-size: 0.95rem;
   }
@@ -223,7 +219,6 @@ footer {
     color: var(--color-black);
     font-weight: 700;
   }
-  /* Hide table borders */
   #motoboy-table td, #motoboy-table th {
     border: none !important;
   }
@@ -257,7 +252,6 @@ footer {
     padding: 0.5rem 0.2rem;
   }
   #motoboy-table td:before {
-    /* give just a bit more breathing room but still smaller than desktop */
     min-width: 70px;
     font-size: 0.92rem;
   }

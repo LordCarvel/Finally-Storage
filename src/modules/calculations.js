@@ -1,4 +1,3 @@
-// Minimal helpers for calculations and DOM row creation
 export function createMotoboyRowElement() {
   const tr = document.createElement('tr');
   tr.innerHTML = `

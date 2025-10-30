@@ -1,9 +1,4 @@
-// Preview modal: shows non-editable summary, generates preview image via html2canvas
-// Usage: openPreviewModal(makeHtmlFn)
-// makeHtmlFn should return an HTML string with the summary content.
-
 export function openPreviewModal(makeHtmlFn) {
-  // Prevent multiple modals
   if (document.getElementById('preview-overlay')) return null;
 
   const overlay = document.createElement('div');
@@ -32,7 +27,7 @@ export function openPreviewModal(makeHtmlFn) {
 
   const content = document.createElement('div');
   content.id = 'preview-content';
-  // ensure some right padding so right-aligned numbers aren't clipped when rendered
+
   content.style.padding = '0.4rem 0.6rem 0.8rem 0.2rem';
   content.style.boxSizing = 'border-box';
   content.innerHTML = makeHtmlFn();
@@ -103,11 +98,11 @@ export function openPreviewModal(makeHtmlFn) {
   generateBtn.addEventListener('click', () => {
     const thisGen = ++genCounter;
     generateBtn.disabled = true;
-    // refresh content (in case underlying inputs changed)
+
     content.innerHTML = makeHtmlFn();
-    // remove old preview
+
     if (previewNode) { previewNode.remove(); previewNode = null; }
-    // generate image
+
     html2canvas(content, { scale: 2, useCORS: true }).then(canvas => {
       if (thisGen !== genCounter) return; // stale
       lastDataUrl = canvas.toDataURL('image/png');
