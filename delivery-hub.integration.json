@@ -1,0 +1,88 @@
+{
+  "appId": "finally-storage",
+  "version": 1,
+  "publishes": {
+    "events": [
+      {
+        "name": "courier_cash_adjusted",
+        "entity": "CourierNightProjection",
+        "idempotencyKey": "cash-adjust:{operationalDate}:{courierId}:{referenceId}",
+        "payloadSchema": {
+          "operationalDate": "yyyy-MM-dd",
+          "courierId": "string",
+          "courierName": "string",
+          "referenceId": "string"
+        }
+      }
+    ],
+    "state": [
+      {
+        "name": "courier_night_cash",
+        "entity": "CourierNightProjection",
+        "mode": "snapshot"
+      }
+    ]
+  },
+  "consumes": {
+    "commands": [
+      {
+        "name": "apply_incoming_order_to_cash",
+        "inputSchema": {
+          "hubOrderId": "string",
+          "sourceBranchId": "string",
+          "sourceBranchName": "string",
+          "totalAmount": "number",
+          "operationalDate": "yyyy-MM-dd"
+        }
+      },
+      {
+        "name": "increment_courier_dispatched_orders",
+        "inputSchema": {
+          "operationalDate": "yyyy-MM-dd",
+          "courierId": "string",
+          "courierName": "string",
+          "incrementBy": "number",
+          "hubRunId": "string",
+          "hubOrderIds": [
+            "string"
+          ]
+        }
+      }
+    ],
+    "state": [
+      {
+        "name": "courier_night_projection",
+        "entity": "CourierNightProjection",
+        "scope": "hub"
+      }
+    ]
+  },
+  "examples": {
+    "apply_incoming_order_to_cash": {
+      "command": "apply_incoming_order_to_cash",
+      "targetAppId": "finally-storage",
+      "payload": {
+        "hubOrderId": "HUB-ORDER-001",
+        "sourceBranchId": "FIL-02",
+        "sourceBranchName": "Filial Centro",
+        "totalAmount": 72.5,
+        "operationalDate": "2026-03-24"
+      }
+    },
+    "increment_courier_dispatched_orders": {
+      "command": "increment_courier_dispatched_orders",
+      "targetAppId": "finally-storage",
+      "payload": {
+        "operationalDate": "2026-03-24",
+        "courierId": "MOTO-12",
+        "courierName": "Joao",
+        "incrementBy": 2,
+        "hubRunId": "RUN-20260324-01",
+        "hubOrderIds": [
+          "HUB-ORDER-001",
+          "HUB-ORDER-002"
+        ]
+      }
+    }
+  }
+}
