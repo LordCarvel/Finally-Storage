@@ -1,232 +1,639 @@
-const tbody = document.getElementById("motoboy-body");
-const totalMotoboys = document.getElementById("totalMotoboys");
-const totalCaixa = document.getElementById("totalCaixa");
+import {
+  createEmptyCourier,
+  createMotoboyRowElement,
+  DEFAULT_HUB_CONFIG,
+  formatCurrency,
+  calculateCourierTotal,
+  calculateTotals,
+  getOperationalDate,
+  normalizeState,
+  parseNumber
+} from './modules/calculations.js';
+import { syncHubCommands } from './modules/hub.js';
+import { openPreviewModal } from './modules/preview.js';
+import { createDebouncedSaver, loadLocalStorage, saveLocalStorage } from './modules/storage.js';
 
-const dinheiro = document.getElementById("dinheiro");
-const cartao = document.getElementById("cartao");
-const online = document.getElementById("online");
+const pageSections = document.querySelectorAll('[data-page]');
+const pageTriggers = document.querySelectorAll('[data-page-trigger]');
 
-function calcularTotais() {
-  let totalGeral = 0;
-  tbody.querySelectorAll("tr").forEach(row => {
-    const valor = parseFloat(row.children[2].querySelector("input").value) || 0;
-    const ajusteInput = row.children[3].querySelector("input.ajuste-input");
-    const ajuste = parseFloat(ajusteInput?.value) || 0;
-    const signSelect = row.children[3].querySelector("select.ajuste-sign");
-    const ajusteSigned = signSelect && signSelect.value === '-' ? -ajuste : ajuste;
-    const total = valor + ajusteSigned;
-    row.querySelector(".total").innerText = total.toFixed(2).replace(".", ",");
-    totalGeral += total;
-  });
-  totalMotoboys.innerText = totalGeral.toFixed(2).replace(".", ",");
-}
+const motoboyTableHead = document.getElementById('motoboy-head');
+const motoboyTableBody = document.getElementById('motoboy-body');
+const ratesTableBody = document.getElementById('rates-body');
+const incomingOrdersBody = document.getElementById('incoming-orders-body');
+const hubLogsList = document.getElementById('hubLogs');
 
-function calcularCaixa() {
-  const total = 
-    (parseFloat(dinheiro.value) || 0) + 
-    (parseFloat(cartao.value) || 0) + 
-    (parseFloat(online.value) || 0);
-  totalCaixa.innerText = total.toFixed(2).replace(".", ",");
-}
+const totalMotoboysEl = document.getElementById('totalMotoboys');
+const totalCaixaEl = document.getElementById('totalCaixa');
+const hubIncomingTotalEl = document.getElementById('hubIncomingTotal');
+const hubIncomingReadonlyEl = document.getElementById('hubIncomingReadonly');
+const autosaveStatusEl = document.getElementById('autosaveStatus');
+const savedPreviewStatusEl = document.getElementById('savedPreviewStatus');
+const syncStatusEl = document.getElementById('hubSyncStatus');
 
-document.getElementById("addMotoboy").addEventListener("click", () => {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td><input type="text" placeholder="Nome"></td>
-    <td><input type="number" placeholder="0"></td>
-    <td><input type="number" placeholder="0" step="0.01"></td>
-    <td class="ajuste-cell"><select class="ajuste-sign" aria-label="sinal ajuste"><option value="+">+</option><option value="-">-</option></select><input type="number" placeholder="0" step="0.01" class="ajuste-input"></td>
-    <td class="total">0,00</td>
+const dinheiroEl = document.getElementById('dinheiro');
+const cartaoEl = document.getElementById('cartao');
+const onlineEl = document.getElementById('online');
+
+const hubEnabledEl = document.getElementById('hubEnabled');
+const hubBaseUrlEl = document.getElementById('hubBaseUrl');
+const hubProjectIdEl = document.getElementById('hubProjectId');
+const hubAppIdEl = document.getElementById('hubAppId');
+const hubPollIntervalEl = document.getElementById('hubPollInterval');
+const hubDefaultRateEl = document.getElementById('hubDefaultRate');
+
+let state = normalizeState(loadLocalStorage() || {});
+let hubPollTimer = null;
+let hubSyncInFlight = false;
+
+const debouncedSave = createDebouncedSaver((snapshot) => {
+  saveLocalStorage(snapshot);
+  autosaveStatusEl.textContent = `Autosave local ativo. Ultima gravacao: ${new Date().toLocaleTimeString('pt-BR')}`;
+}, 300);
+
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const createRateRowElement = (rate) => {
+  const row = document.createElement('tr');
+  row.dataset.rateId = rate.id;
+  row.innerHTML = `
+    <td data-label="Nome da taxa">
+      <input type="text" data-role="rate-name" value="${escapeHtml(rate.name)}" placeholder="Nome da taxa">
+    </td>
+    <td data-label="Valor unitario (R$)">
+      <input type="number" data-role="rate-value" value="${rate.value}" step="0.01" placeholder="0">
+    </td>
+    <td data-label="Acoes" class="row-actions">
+      <button type="button" class="btn btn-row-remove" data-action="remove-rate">Remover</button>
+    </td>
   `;
-  tbody.appendChild(tr);
-});
+  return row;
+};
 
-document.addEventListener("input", e => {
-  if (e.target.closest("#motoboys-section")) calcularTotais();
-  if (e.target.closest("#caixa-section")) calcularCaixa();
-});
+const readRateConfigsFromDom = () =>
+  Array.from(ratesTableBody.querySelectorAll('tr')).map((row, index) => ({
+    id: row.dataset.rateId || `rate-${index + 1}`,
+    name: row.querySelector('[data-role="rate-name"]')?.value || `Taxa ${index + 1}`,
+    value: row.querySelector('[data-role="rate-value"]')?.value || ''
+  }));
 
-document.getElementById("exportImageBtn").addEventListener("click", () => {
-  const overlay = document.createElement('div');
-  overlay.id = 'preview-overlay';
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0';
-  overlay.style.left = '0';
-  overlay.style.width = '100vw';
-  overlay.style.height = '100vh';
-  overlay.style.background = 'rgba(0,0,0,0.35)';
-  overlay.style.zIndex = '99998';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center';
-  overlay.style.justifyContent = 'center';
+const readCouriersFromDom = () =>
+  Array.from(motoboyTableBody.querySelectorAll('tr')).map((row) => {
+    const countsByRate = {};
 
-  const resumoPanel = document.createElement('div');
-  resumoPanel.id = 'resumo-panel';
-  resumoPanel.style.position = 'relative';
-  resumoPanel.style.background = '#fff';
-  resumoPanel.style.border = '2px solid #77A2E8';
-  resumoPanel.style.borderRadius = '16px';
-  resumoPanel.style.boxShadow = '0 4px 24px rgba(0,0,0,0.12)';
-  resumoPanel.style.padding = '1.6rem 1rem 3.6rem 1rem';
-  resumoPanel.style.maxWidth = '95vw';
-  resumoPanel.style.width = '720px';
-  resumoPanel.style.maxHeight = 'calc(100vh - 40px)';
-  // permite rolagem interna para que o painel nunca quebre a viewport
-  resumoPanel.style.overflow = 'auto';
-  resumoPanel.style.fontFamily = 'Inter, Arial, sans-serif';
-  resumoPanel.style.color = '#222';
-  resumoPanel.style.overflowY = 'auto';
-
-  const contentDiv = document.createElement('div');
-  contentDiv.style.padding = '0.8rem 0.4rem 0.6rem 0.4rem';
-  contentDiv.style.overflowY = 'auto';
-  contentDiv.style.maxHeight = 'calc(100vh - 260px)';
-
-  const makeResumoHtml = () => {
-    let html = `<h2 style="text-align:center;margin-bottom:1.2rem;color:#77A2E8;font-family:Poppins,sans-serif;font-size:1.3rem;">Fechamento de Caixa</h2>`;
-    const motoboys = [];
-    tbody.querySelectorAll('tr').forEach(row => {
-      const nome = row.children[0].querySelector('input').value || '';
-      const entregas = row.children[1].querySelector('input').value || '';
-      const valor = row.children[2].querySelector('input').value || '';
-      const ajusteInput = row.children[3].querySelector('input.ajuste-input');
-      const ajuste = ajusteInput?.value || '';
-      const signSelect = row.children[3].querySelector('select.ajuste-sign');
-      const ajusteSign = signSelect?.value || '+';
-      const total = row.querySelector('.total').innerText;
-      motoboys.push({ nome, entregas, valor, ajuste, ajusteSign, total });
+    state.rateConfigs.forEach((rate) => {
+      countsByRate[rate.id] = row.querySelector(`[data-rate-id="${rate.id}"]`)?.value || '';
     });
 
-    let motoboysHtml = `<div style="margin-bottom:1.2rem;"><strong>Motoboys</strong><table style="width:100%;margin-top:0.5rem;border-collapse:collapse;font-size:0.98rem;">`;
-    motoboysHtml += `<tr style="background:#f3f7ff;"><th style="padding:6px 8px;text-align:left;">Nome</th><th style="text-align:right;padding:6px 8px;">Entregas</th><th style="text-align:right;padding:6px 8px;">Valor</th><th style="text-align:right;padding:6px 8px;">Ajuste</th><th style="text-align:right;padding:6px 8px;">Total</th></tr>`;
-    motoboys.forEach(m => {
-      motoboysHtml += `<tr><td style="padding:6px 8px;">${m.nome}</td><td style="text-align:right;padding:6px 8px;">${m.entregas}</td><td style="text-align:right;padding:6px 8px;">${parseFloat(m.valor||0).toFixed(2).replace('.',',')}</td><td style="text-align:right;padding:6px 8px;">${m.ajusteSign}${parseFloat(m.ajuste||0).toFixed(2).replace('.',',')}</td><td style="text-align:right;padding:6px 8px;"><strong>${m.total}</strong></td></tr>`;
-    });
-    motoboysHtml += `</table></div>`;
-
-    html += motoboysHtml;
-    html += `<div style="margin-bottom:1.2rem;font-family:'IBM Plex Mono',monospace;font-size:1.05rem;"><strong>Total Motoboys:</strong> R$ <span>${totalMotoboys.innerText}</span></div>`;
-
-    html += `<div style="margin-bottom:1.2rem;"><strong>Caixa Final</strong><table style="width:100%;margin-top:0.5rem;border-collapse:collapse;font-size:0.98rem;">` +
-      `<tr><td style="padding:6px 8px;">Dinheiro:</td><td style="text-align:right;padding:6px 8px;">R$ ${parseFloat(dinheiro.value||0).toFixed(2).replace('.',',')}</td></tr>` +
-      `<tr><td style="padding:6px 8px;">Cartão:</td><td style="text-align:right;padding:6px 8px;">R$ ${parseFloat(cartao.value||0).toFixed(2).replace('.',',')}</td></tr>` +
-      `<tr><td style="padding:6px 8px;">Online:</td><td style="text-align:right;padding:6px 8px;">R$ ${parseFloat(online.value||0).toFixed(2).replace('.',',')}</td></tr>` +
-      `</table></div>`;
-
-    html += `<div style="font-family:'IBM Plex Mono',monospace;font-size:1.05rem;"><strong>Total Caixa:</strong> R$ <span>${totalCaixa.innerText}</span></div>`;
-    html += `<div style="margin-top:1.5rem;text-align:center;font-size:0.92rem;color:#888;">© 2025 — <a href="https://github.com/LordCarvel" target="_blank" style="color:#77A2E8;text-decoration:none;">LordCarvel</a></div>`;
-    return html;
-  };
-
-  contentDiv.innerHTML = makeResumoHtml();
-  resumoPanel.appendChild(contentDiv);
-
-  const btnsDiv = document.createElement('div');
-  btnsDiv.style.position = 'sticky';
-  btnsDiv.style.left = '0';
-  btnsDiv.style.bottom = '0';
-  btnsDiv.style.width = '100%';
-  btnsDiv.style.display = 'flex';
-  btnsDiv.style.justifyContent = 'flex-end';
-  btnsDiv.style.gap = '0.6rem';
-  btnsDiv.style.padding = '0.9rem';
-  btnsDiv.style.background = 'rgba(255,255,255,0.95)';
-  btnsDiv.style.borderBottomLeftRadius = '14px';
-  btnsDiv.style.borderBottomRightRadius = '14px';
-
-  const btnCancel = document.createElement('button');
-  btnCancel.textContent = 'Cancelar';
-  btnCancel.style.background = '#eee';
-  btnCancel.style.color = '#333';
-  btnCancel.style.border = 'none';
-  btnCancel.style.borderRadius = '8px';
-  btnCancel.style.padding = '0.55rem 0.9rem';
-  btnCancel.style.fontWeight = '600';
-  btnCancel.style.cursor = 'pointer';
-  const closeOverlay = () => {
-    document.removeEventListener('keydown', escListener);
-    if (previewWrapper) previewWrapper.remove();
-    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-  };
-  btnCancel.onclick = closeOverlay;
-
-  const btnGenerate = document.createElement('button');
-  btnGenerate.textContent = 'Gerar pré-visualização';
-  btnGenerate.style.background = '#77A2E8';
-  btnGenerate.style.color = '#fff';
-  btnGenerate.style.border = 'none';
-  btnGenerate.style.borderRadius = '8px';
-  btnGenerate.style.padding = '0.55rem 0.9rem';
-  btnGenerate.style.fontWeight = '600';
-  btnGenerate.style.cursor = 'pointer';
-
-  const btnDownload = document.createElement('button');
-  btnDownload.textContent = 'Baixar imagem';
-  btnDownload.style.background = '#2b6cb0';
-  btnDownload.style.color = '#fff';
-  btnDownload.style.border = 'none';
-  btnDownload.style.borderRadius = '8px';
-  btnDownload.style.padding = '0.55rem 0.9rem';
-  btnDownload.style.fontWeight = '600';
-  btnDownload.style.cursor = 'pointer';
-  btnDownload.disabled = true;
-
-  let lastPreviewData = null;
-  let previewWrapper = null;
-  let generateCounter = 0;
-
-  btnGenerate.onclick = () => {
-    const thisGen = ++generateCounter;
-    btnGenerate.disabled = true;
-    contentDiv.innerHTML = makeResumoHtml();
-    if (previewWrapper) { previewWrapper.remove(); previewWrapper = null; }
-    html2canvas(contentDiv, { scale: 2, useCORS: true }).then(canvas => {
-      if (thisGen !== generateCounter) return;
-      lastPreviewData = canvas.toDataURL('image/png');
-      const img = document.createElement('img');
-      img.src = lastPreviewData;
-      img.style.maxWidth = '100%';
-      img.style.borderRadius = '10px';
-      img.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
-
-      previewWrapper = document.createElement('div');
-      previewWrapper.style.margin = '0.6rem 0 1rem 0';
-      previewWrapper.style.display = 'flex';
-      previewWrapper.style.justifyContent = 'center';
-      previewWrapper.appendChild(img);
-
-      if (resumoPanel.contains(previewWrapper) === false) {
-        resumoPanel.insertBefore(previewWrapper, btnsDiv);
-      }
-      btnDownload.disabled = false;
-      previewWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }).catch(err => {
-      console.error(err);
-      alert('Erro ao gerar pré-visualização. Veja o console para detalhes.');
-    }).finally(() => {
-      if (thisGen === generateCounter) btnGenerate.disabled = false;
-    });
-  };
-
-  btnDownload.onclick = () => {
-    if (!lastPreviewData) return alert('Gere a pré-visualização antes de baixar.');
-    const link = document.createElement('a');
-    link.download = `fechamento-${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = lastPreviewData;
-    link.click();
-  };
-
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeOverlay();
+    return {
+      id: row.dataset.courierId || undefined,
+      hubCourierId: row.dataset.hubCourierId || '',
+      name: row.querySelector('[data-role="courier-name"]')?.value || '',
+      countsByRate,
+      adjustmentSign: row.querySelector('[data-role="adjustment-sign"]')?.value || '+',
+      adjustmentValue: row.querySelector('[data-role="adjustment-value"]')?.value || ''
+    };
   });
 
-  const escListener = (e) => { if (e.key === 'Escape') closeOverlay(); };
-  document.addEventListener('keydown', escListener);
-
-  btnsDiv.appendChild(btnCancel);
-  btnsDiv.appendChild(btnGenerate);
-  btnsDiv.appendChild(btnDownload);
-  resumoPanel.appendChild(btnsDiv);
-  overlay.appendChild(resumoPanel);
-  document.body.appendChild(overlay);
+const readHubConfigFromDom = () => ({
+  enabled: hubEnabledEl.checked,
+  baseUrl: hubBaseUrlEl.value,
+  projectId: hubProjectIdEl.value,
+  appId: DEFAULT_HUB_CONFIG.appId,
+  pollIntervalSeconds: hubPollIntervalEl.value,
+  defaultRateId: hubDefaultRateEl.value
 });
+
+const updateState = (updater, options = {}) => {
+  const nextState = typeof updater === 'function' ? updater(state) : updater;
+  state = normalizeState(nextState);
+
+  if (!options.skipPersist) {
+    debouncedSave(state);
+  }
+
+  if (!options.skipPollingRefresh) {
+    scheduleHubPolling();
+  }
+};
+
+const renderPageVisibility = () => {
+  pageSections.forEach((section) => {
+    const isActive = section.dataset.page === state.activePage;
+    section.hidden = !isActive;
+  });
+
+  pageTriggers.forEach((trigger) => {
+    const isActive = trigger.dataset.pageTrigger === state.activePage;
+    trigger.classList.toggle('active', isActive);
+  });
+};
+
+const renderRatesTable = () => {
+  ratesTableBody.innerHTML = '';
+  state.rateConfigs.forEach((rate) => {
+    ratesTableBody.appendChild(createRateRowElement(rate));
+  });
+};
+
+const renderMotoboyTable = () => {
+  const rateHeaders = state.rateConfigs
+    .map((rate) => `<th>${escapeHtml(rate.name)}<small>R$ ${formatCurrency(rate.value)}</small></th>`)
+    .join('');
+
+  motoboyTableHead.innerHTML = `
+    <tr>
+      <th>Nome</th>
+      ${rateHeaders}
+      <th>Ajuste (R$)</th>
+      <th>Total (R$)</th>
+      <th>Acoes</th>
+    </tr>
+  `;
+
+  motoboyTableBody.innerHTML = '';
+  state.couriers.forEach((courier) => {
+    const row = createMotoboyRowElement(courier, state.rateConfigs);
+    row.dataset.hubCourierId = courier.hubCourierId || '';
+    motoboyTableBody.appendChild(row);
+  });
+};
+
+const renderCashInputs = () => {
+  dinheiroEl.value = state.cash.dinheiro;
+  cartaoEl.value = state.cash.cartao;
+  onlineEl.value = state.cash.online;
+};
+
+const renderIncomingOrders = () => {
+  incomingOrdersBody.innerHTML = '';
+
+  if (!state.incomingOrders.length) {
+    const row = document.createElement('tr');
+    row.innerHTML = `<td colspan="5" class="empty-state-cell">Nenhum pedido vindo do Hub ainda.</td>`;
+    incomingOrdersBody.appendChild(row);
+    return;
+  }
+
+  state.incomingOrders.forEach((order) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td data-label="Data">${escapeHtml(order.operationalDate || getOperationalDate())}</td>
+      <td data-label="Filial">${escapeHtml(order.sourceBranchName || '-')}</td>
+      <td data-label="Pedido">${escapeHtml(order.hubOrderId || '-')}</td>
+      <td data-label="Valor">R$ ${formatCurrency(order.totalAmount)}</td>
+      <td data-label="Recebido">${escapeHtml(order.receivedAt ? new Date(order.receivedAt).toLocaleTimeString('pt-BR') : '-')}</td>
+    `;
+    incomingOrdersBody.appendChild(row);
+  });
+};
+
+const renderHubConfig = () => {
+  hubEnabledEl.checked = state.hubConfig.enabled;
+  hubBaseUrlEl.value = state.hubConfig.baseUrl;
+  hubProjectIdEl.value = state.hubConfig.projectId;
+  hubAppIdEl.value = state.hubConfig.appId;
+  hubPollIntervalEl.value = String(state.hubConfig.pollIntervalSeconds);
+
+  hubDefaultRateEl.innerHTML = '';
+  state.rateConfigs.forEach((rate) => {
+    const option = document.createElement('option');
+    option.value = rate.id;
+    option.textContent = `${rate.name} (R$ ${formatCurrency(rate.value)})`;
+    option.selected = rate.id === state.hubConfig.defaultRateId;
+    hubDefaultRateEl.appendChild(option);
+  });
+};
+
+const renderHubLogs = () => {
+  hubLogsList.innerHTML = '';
+
+  if (!state.hubSync.lastAppliedCommands.length) {
+    const item = document.createElement('li');
+    item.textContent = 'Nenhuma sincronizacao aplicada ainda.';
+    hubLogsList.appendChild(item);
+  } else {
+    state.hubSync.lastAppliedCommands
+      .slice()
+      .reverse()
+      .forEach((entry) => {
+        const item = document.createElement('li');
+        item.innerHTML = `<strong>${new Date(entry.createdAt).toLocaleTimeString('pt-BR')}</strong> ${escapeHtml(entry.message)}`;
+        hubLogsList.appendChild(item);
+      });
+  }
+
+  const statusParts = [];
+
+  if (state.hubSync.lastSyncAt) {
+    statusParts.push(`Ultima sincronizacao: ${new Date(state.hubSync.lastSyncAt).toLocaleString('pt-BR')}`);
+  }
+
+  if (state.hubSync.lastError) {
+    statusParts.push(`Erro: ${state.hubSync.lastError}`);
+  }
+
+  if (!statusParts.length) {
+    syncStatusEl.textContent = 'Hub pronto para sincronizar.';
+  } else {
+    syncStatusEl.textContent = statusParts.join(' | ');
+  }
+};
+
+const renderPreviewStatus = () => {
+  if (!state.lastPreviewGeneratedAt) {
+    savedPreviewStatusEl.textContent = 'Nenhuma imagem salva localmente ainda.';
+    return;
+  }
+
+  savedPreviewStatusEl.textContent = `Ultima imagem salva localmente em ${new Date(
+    state.lastPreviewGeneratedAt
+  ).toLocaleString('pt-BR')}.`;
+};
+
+const paintTotals = () => {
+  const totals = calculateTotals(state);
+
+  Array.from(motoboyTableBody.querySelectorAll('tr')).forEach((row, index) => {
+    const courier = state.couriers[index];
+    if (!courier) return;
+    const totalCell = row.querySelector('.total');
+    if (totalCell) {
+      totalCell.textContent = formatCurrency(calculateCourierTotal(courier, state.rateConfigs));
+    }
+  });
+
+  totalMotoboysEl.textContent = formatCurrency(totals.couriersTotal);
+  hubIncomingTotalEl.textContent = formatCurrency(totals.incomingOrdersTotal);
+  hubIncomingReadonlyEl.value = formatCurrency(totals.incomingOrdersTotal);
+  totalCaixaEl.textContent = formatCurrency(totals.cashTotal);
+};
+
+const renderAll = () => {
+  renderPageVisibility();
+  renderRatesTable();
+  renderMotoboyTable();
+  renderCashInputs();
+  renderIncomingOrders();
+  renderHubConfig();
+  renderHubLogs();
+  renderPreviewStatus();
+  paintTotals();
+};
+
+const refreshCourierStateFromDom = () => {
+  updateState((currentState) => ({
+    ...currentState,
+    couriers: readCouriersFromDom()
+  }), { skipPollingRefresh: true });
+  paintTotals();
+};
+
+const refreshCashStateFromDom = () => {
+  updateState((currentState) => ({
+    ...currentState,
+    cash: {
+      dinheiro: dinheiroEl.value,
+      cartao: cartaoEl.value,
+      online: onlineEl.value
+    }
+  }), { skipPollingRefresh: true });
+  paintTotals();
+};
+
+const refreshRatesStateFromDom = () => {
+  const previousCouriers = motoboyTableBody.children.length ? readCouriersFromDom() : state.couriers;
+
+  updateState((currentState) => ({
+    ...currentState,
+    rateConfigs: readRateConfigsFromDom(),
+    couriers: previousCouriers
+  }), { skipPollingRefresh: true });
+
+  renderMotoboyTable();
+  renderHubConfig();
+  paintTotals();
+};
+
+const refreshHubConfigFromDom = () => {
+  updateState((currentState) => ({
+    ...currentState,
+    hubConfig: readHubConfigFromDom()
+  }));
+  renderHubLogs();
+};
+
+const addCourierRow = () => {
+  updateState((currentState) => ({
+    ...currentState,
+    couriers: [...currentState.couriers, createEmptyCourier(currentState.rateConfigs)]
+  }), { skipPollingRefresh: true });
+  renderMotoboyTable();
+  paintTotals();
+};
+
+const removeCourierRow = (courierId) => {
+  updateState((currentState) => ({
+    ...currentState,
+    couriers: currentState.couriers.filter((courier) => courier.id !== courierId)
+  }), { skipPollingRefresh: true });
+
+  if (!state.couriers.length) {
+    state = normalizeState({
+      ...state,
+      couriers: [createEmptyCourier(state.rateConfigs)]
+    });
+  }
+
+  renderMotoboyTable();
+  paintTotals();
+};
+
+const addRateConfig = () => {
+  updateState((currentState) => ({
+    ...currentState,
+    rateConfigs: [
+      ...currentState.rateConfigs,
+      {
+        id: `taxa-${Date.now().toString(36)}`,
+        name: `Nova taxa ${currentState.rateConfigs.length + 1}`,
+        value: 0
+      }
+    ]
+  }), { skipPollingRefresh: true });
+
+  renderRatesTable();
+  renderMotoboyTable();
+  renderHubConfig();
+  paintTotals();
+};
+
+const removeRateConfig = (rateId) => {
+  if (state.rateConfigs.length === 1) {
+    alert('Voce precisa manter pelo menos uma taxa configurada.');
+    return;
+  }
+
+  updateState((currentState) => ({
+    ...currentState,
+    rateConfigs: currentState.rateConfigs.filter((rate) => rate.id !== rateId)
+  }));
+
+  renderRatesTable();
+  renderMotoboyTable();
+  renderHubConfig();
+  paintTotals();
+};
+
+const buildSummaryHtml = () => {
+  const totals = calculateTotals(state);
+  const rateHeaders = state.rateConfigs
+    .map((rate) => `<th style="padding:5px 6px;text-align:right;">${escapeHtml(rate.name)}</th>`)
+    .join('');
+
+  const courierRows = state.couriers
+    .map((courier) => {
+      const rateValues = state.rateConfigs
+        .map((rate) => `<td style="padding:5px 6px;text-align:right;">${escapeHtml(courier.countsByRate[rate.id] || '0')}</td>`)
+        .join('');
+
+      const adjustment = `${courier.adjustmentSign}${formatCurrency(courier.adjustmentValue || 0)}`;
+
+      return `
+        <tr>
+          <td style="padding:5px 6px;">${escapeHtml(courier.name || '-')}</td>
+          ${rateValues}
+          <td style="padding:5px 6px;text-align:right;">${adjustment}</td>
+          <td style="padding:5px 6px;text-align:right;"><strong>${formatCurrency(
+            calculateCourierTotal(courier, state.rateConfigs)
+          )}</strong></td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  const hubRows = state.incomingOrders.length
+    ? state.incomingOrders
+      .map((order) => `
+        <tr>
+          <td style="padding:5px 6px;">${escapeHtml(order.operationalDate || getOperationalDate())}</td>
+          <td style="padding:5px 6px;">${escapeHtml(order.sourceBranchName || '-')}</td>
+          <td style="padding:5px 6px;">${escapeHtml(order.hubOrderId || '-')}</td>
+          <td style="padding:5px 6px;text-align:right;">${formatCurrency(order.totalAmount)}</td>
+        </tr>
+      `)
+      .join('')
+    : `<tr><td colspan="4" style="padding:5px 6px;text-align:center;color:#666;">Nenhuma entrada do hub</td></tr>`;
+
+  return `
+    <div style="background:#fff;color:#111;font-family:Inter,Arial,sans-serif;padding:12px;max-width:760px;">
+      <h2 style="margin:0 0 10px;text-align:center;color:#2b6cb0;font-size:1.05rem;">Finally Storage - Fechamento de Caixa</h2>
+      <p style="margin:0 0 12px;text-align:center;font-size:0.7rem;color:#555;">Escala da imagem: 75%</p>
+
+      <div style="margin-bottom:12px;">
+        <strong style="display:block;margin-bottom:6px;font-size:0.78rem;">Motoboys</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+          <thead>
+            <tr style="background:#eef4ff;">
+              <th style="padding:5px 6px;text-align:left;">Nome</th>
+              ${rateHeaders}
+              <th style="padding:5px 6px;text-align:right;">Ajuste</th>
+              <th style="padding:5px 6px;text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${courierRows}</tbody>
+        </table>
+        <div style="margin-top:8px;font-size:0.74rem;"><strong>Total Motoboys:</strong> R$ ${formatCurrency(totals.couriersTotal)}</div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <strong style="display:block;margin-bottom:6px;font-size:0.78rem;">Entradas do Hub</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+          <thead>
+            <tr style="background:#eefaf1;">
+              <th style="padding:5px 6px;text-align:left;">Data</th>
+              <th style="padding:5px 6px;text-align:left;">Filial</th>
+              <th style="padding:5px 6px;text-align:left;">Pedido</th>
+              <th style="padding:5px 6px;text-align:right;">Valor</th>
+            </tr>
+          </thead>
+          <tbody>${hubRows}</tbody>
+        </table>
+        <div style="margin-top:8px;font-size:0.74rem;"><strong>Total Hub:</strong> R$ ${formatCurrency(totals.incomingOrdersTotal)}</div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <strong style="display:block;margin-bottom:6px;font-size:0.78rem;">Caixa Manual</strong>
+        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+          <tbody>
+            <tr><td style="padding:5px 6px;">Dinheiro</td><td style="padding:5px 6px;text-align:right;">R$ ${formatCurrency(state.cash.dinheiro)}</td></tr>
+            <tr><td style="padding:5px 6px;">Cartao</td><td style="padding:5px 6px;text-align:right;">R$ ${formatCurrency(state.cash.cartao)}</td></tr>
+            <tr><td style="padding:5px 6px;">Online</td><td style="padding:5px 6px;text-align:right;">R$ ${formatCurrency(state.cash.online)}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="font-size:0.78rem;"><strong>Total Caixa:</strong> R$ ${formatCurrency(totals.cashTotal)}</div>
+      <div style="margin-top:10px;text-align:center;font-size:0.66rem;color:#666;">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+    </div>
+  `;
+};
+
+const exportImage = () => {
+  openPreviewModal(buildSummaryHtml, {
+    initialDataUrl: state.lastPreviewImageDataUrl,
+    previewZoom: 0.75,
+    onPreviewGenerated: ({ dataUrl, generatedAt }) => {
+      state = normalizeState({
+        ...state,
+        lastPreviewImageDataUrl: dataUrl,
+        lastPreviewGeneratedAt: generatedAt
+      });
+      saveLocalStorage(state);
+      renderPreviewStatus();
+    }
+  });
+};
+
+const scheduleHubPolling = () => {
+  window.clearInterval(hubPollTimer);
+
+  if (!state.hubConfig.enabled || !state.hubConfig.projectId) return;
+
+  hubPollTimer = window.setInterval(() => {
+    void synchronizeHub(true);
+  }, state.hubConfig.pollIntervalSeconds * 1000);
+};
+
+const synchronizeHub = async (silent = false) => {
+  if (hubSyncInFlight) return;
+  hubSyncInFlight = true;
+
+  if (!silent) {
+    syncStatusEl.textContent = 'Sincronizando com o Delivery Hub...';
+  }
+
+  const nextState = await syncHubCommands(state);
+  state = normalizeState(nextState);
+  saveLocalStorage(state);
+  renderMotoboyTable();
+  renderIncomingOrders();
+  renderHubConfig();
+  renderHubLogs();
+  renderPreviewStatus();
+  paintTotals();
+  scheduleHubPolling();
+
+  hubSyncInFlight = false;
+};
+
+document.addEventListener('click', (event) => {
+  const pageTrigger = event.target.closest('[data-page-trigger]');
+  if (pageTrigger) {
+    updateState((currentState) => ({
+      ...currentState,
+      activePage: pageTrigger.dataset.pageTrigger
+    }), { skipPollingRefresh: true });
+    renderPageVisibility();
+    return;
+  }
+
+  if (event.target.closest('#addMotoboy')) {
+    addCourierRow();
+    return;
+  }
+
+  if (event.target.closest('#addRateBtn')) {
+    addRateConfig();
+    return;
+  }
+
+  if (event.target.closest('#exportImageBtn')) {
+    exportImage();
+    return;
+  }
+
+  if (event.target.closest('#syncHubBtn')) {
+    void synchronizeHub();
+    return;
+  }
+
+  if (event.target.closest('#clearIncomingOrdersBtn')) {
+    updateState((currentState) => ({
+      ...currentState,
+      incomingOrders: []
+    }), { skipPollingRefresh: true });
+    renderIncomingOrders();
+    paintTotals();
+    return;
+  }
+
+  const removeCourierBtn = event.target.closest('[data-action="remove-courier"]');
+  if (removeCourierBtn) {
+    const row = removeCourierBtn.closest('tr');
+    if (row?.dataset.courierId) {
+      removeCourierRow(row.dataset.courierId);
+    }
+    return;
+  }
+
+  const removeRateBtn = event.target.closest('[data-action="remove-rate"]');
+  if (removeRateBtn) {
+    const row = removeRateBtn.closest('tr');
+    if (row?.dataset.rateId) {
+      removeRateConfig(row.dataset.rateId);
+    }
+  }
+});
+
+document.addEventListener('input', (event) => {
+  if (event.target.closest('#motoboys-section')) {
+    refreshCourierStateFromDom();
+    return;
+  }
+
+  if (event.target.closest('#caixa-section')) {
+    refreshCashStateFromDom();
+    return;
+  }
+
+  if (event.target.closest('#rates-page')) {
+    refreshRatesStateFromDom();
+    return;
+  }
+
+  if (event.target.closest('#hub-page')) {
+    refreshHubConfigFromDom();
+  }
+});
+
+document.addEventListener('change', (event) => {
+  if (event.target.closest('#motoboys-section')) {
+    refreshCourierStateFromDom();
+    return;
+  }
+
+  if (event.target.closest('#rates-page')) {
+    refreshRatesStateFromDom();
+    return;
+  }
+
+  if (event.target.closest('#hub-page')) {
+    refreshHubConfigFromDom();
+  }
+});
+
+window.addEventListener('online', () => {
+  void synchronizeHub(true);
+});
+
+renderAll();
+autosaveStatusEl.textContent = 'Autosave local ativo.';
+if (state.hubConfig.enabled && state.hubConfig.projectId) {
+  void synchronizeHub(true);
+}

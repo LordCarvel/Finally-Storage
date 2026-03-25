@@ -4,59 +4,191 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="public/favicon.png" />
-  <title>Finally Storage — Fechamento de Caixa</title>
+  <title>Finally Storage | Fechamento de Caixa</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    Finally Storage — Fechamento de Caixa
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Finally Storage</p>
+      <h1>Fechamento de Caixa</h1>
+    </div>
+    <p id="autosaveStatus" class="autosave-status">Autosave local ativo.</p>
   </header>
 
-  <main>
-    <section id="motoboys-section">
-      <h2>Motoboys</h2>
-      <table id="motoboy-table">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Entregas</th>
-            <th>Valor (R$)</th>
-            <th>Ajuste (R$)</th>
-            <th>Total (R$)</th>
-          </tr>
-        </thead>
-        <tbody id="motoboy-body">
-          <tr>
-            <td data-label="Nome"><input type="text" placeholder="Nome"></td>
-            <td data-label="Entregas"><input type="number" placeholder="0"></td>
-            <td data-label="Valor (R$)"><input type="number" placeholder="0" step="0.01"></td>
-            <td data-label="Ajuste (R$)" class="ajuste-cell"><select class="ajuste-sign" aria-label="sinal ajuste"><option value="+">+</option><option value="-">-</option></select><input type="number" placeholder="0" step="0.01" class="ajuste-input"></td>
-            <td data-label="Total (R$)" class="total">0,00</td>
-          </tr>
-        </tbody>
-      </table>
-      <button class="btn btn-add" id="addMotoboy">+ Adicionar Motoboy</button>
-      <div class="totais">Total Motoboys: R$ <span id="totalMotoboys">0,00</span></div>
+  <main class="app-shell">
+    <nav class="page-tabs" aria-label="Paginas internas">
+      <button type="button" class="page-tab active" data-page-trigger="cash">Fechamento</button>
+      <button type="button" class="page-tab" data-page-trigger="rates">Taxas</button>
+      <button type="button" class="page-tab" data-page-trigger="hub">Hub</button>
+    </nav>
+
+    <section id="cash-page" class="page-section" data-page="cash">
+      <section id="motoboys-section" class="card">
+        <div class="section-header">
+          <div>
+            <h2>Motoboys</h2>
+            <p>Agora cada taxa tem sua propria coluna e o total e calculado automaticamente por entrega.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="addMotoboy">+ Adicionar motoboy</button>
+        </div>
+
+        <div class="table-wrap">
+          <table id="motoboy-table">
+            <thead id="motoboy-head"></thead>
+            <tbody id="motoboy-body"></tbody>
+          </table>
+        </div>
+
+        <div class="totals-bar">Total Motoboys: R$ <span id="totalMotoboys">0,00</span></div>
+      </section>
+
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <h2>Entradas do Hub</h2>
+            <p>Pedidos recebidos do Delivery Hub entram aqui e somam no caixa automaticamente.</p>
+          </div>
+          <button type="button" class="btn btn-secondary" id="clearIncomingOrdersBtn">Limpar entradas</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Filial</th>
+                <th>Pedido</th>
+                <th>Valor</th>
+                <th>Recebido</th>
+              </tr>
+            </thead>
+            <tbody id="incoming-orders-body"></tbody>
+          </table>
+        </div>
+
+        <div class="totals-bar">Total Hub: R$ <span id="hubIncomingTotal">0,00</span></div>
+      </section>
+
+      <section id="caixa-section" class="card">
+        <h2>Caixa Final</h2>
+        <div class="cash-grid">
+          <label>
+            <span>Dinheiro (R$)</span>
+            <input type="number" id="dinheiro" step="0.01" placeholder="0">
+          </label>
+
+          <label>
+            <span>Cartao (R$)</span>
+            <input type="number" id="cartao" step="0.01" placeholder="0">
+          </label>
+
+          <label>
+            <span>Online (R$)</span>
+            <input type="number" id="online" step="0.01" placeholder="0">
+          </label>
+
+          <label>
+            <span>Pedidos do Hub (R$)</span>
+            <input type="text" id="hubIncomingReadonly" readonly value="0,00">
+          </label>
+        </div>
+
+        <div class="totals-bar">Total Caixa: R$ <span id="totalCaixa">0,00</span></div>
+      </section>
+
+      <section class="card export-card">
+        <div>
+          <h2>Imagem do Fechamento</h2>
+          <p id="savedPreviewStatus">Nenhuma imagem salva localmente ainda.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="exportImageBtn">Exportar imagem</button>
+      </section>
     </section>
 
-    <section id="caixa-section">
-      <h2>Caixa Final</h2>
-      <table>
-        <tr><td>Dinheiro (R$):</td><td><input type="number" id="dinheiro" step="0.01"></td></tr>
-        <tr><td>Cartão (R$):</td><td><input type="number" id="cartao" step="0.01"></td></tr>
-        <tr><td>Online (R$):</td><td><input type="number" id="online" step="0.01"></td></tr>
-      </table>
-      <div class="totais">Total Caixa: R$ <span id="totalCaixa">0,00</span></div>
+    <section id="rates-page" class="page-section" data-page="rates" hidden>
+      <section class="card">
+        <div class="section-header">
+          <div>
+            <h2>Configuracao de Taxas</h2>
+            <p>Crie taxas dinamicas por bairro, filial ou regra operacional. Cada coluna aparece automaticamente no fechamento.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="addRateBtn">+ Nova taxa</button>
+        </div>
+
+        <div class="table-wrap">
+          <table id="rates-table">
+            <thead>
+              <tr>
+                <th>Nome da taxa</th>
+                <th>Valor unitario (R$)</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="rates-body"></tbody>
+          </table>
+        </div>
+      </section>
     </section>
 
-    <button class="btn btn-add" id="exportImageBtn">Exportar imagem</button>
+    <section id="hub-page" class="page-section" data-page="hub" hidden>
+      <section class="card hub-grid-card">
+        <div class="hub-form">
+          <div class="section-header">
+            <div>
+              <h2>Integracao com Delivery Hub</h2>
+              <p>O app busca comandos pendentes do hub, aplica localmente e confirma cada comando com ack.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="syncHubBtn">Sincronizar agora</button>
+          </div>
+
+          <label class="switch-field">
+            <input type="checkbox" id="hubEnabled">
+            <span>Ativar sincronizacao com o hub</span>
+          </label>
+
+          <label>
+            <span>Base URL</span>
+            <input type="text" id="hubBaseUrl" placeholder="http://127.0.0.1:8080">
+          </label>
+
+          <label>
+            <span>Project ID</span>
+            <input type="text" id="hubProjectId" placeholder="Ex.: 3">
+          </label>
+
+          <label>
+            <span>App ID</span>
+            <input type="text" id="hubAppId" value="finally-storage" readonly>
+          </label>
+
+          <label>
+            <span>Intervalo de polling (segundos)</span>
+            <input type="number" id="hubPollInterval" min="5" step="1" value="20">
+          </label>
+
+          <label>
+            <span>Taxa padrao para comandos de entrega</span>
+            <select id="hubDefaultRate"></select>
+          </label>
+        </div>
+
+        <div class="hub-status-card">
+          <h3>Status do Hub</h3>
+          <p id="hubSyncStatus">Hub pronto para sincronizar.</p>
+
+          <h3>Ultimas acoes</h3>
+          <ul id="hubLogs" class="hub-logs"></ul>
+        </div>
+      </section>
+    </section>
   </main>
 
-  <footer>
-    © 2025 — <a href="https://github.com/LordCarvel" target="_blank" style="color:inherit;text-decoration:none;">LordCarvel</a> — Todos os direitos reservados.
+  <footer class="app-footer">
+    <a href="https://github.com/LordCarvel" target="_blank" rel="noreferrer">LordCarvel</a>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="main.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
