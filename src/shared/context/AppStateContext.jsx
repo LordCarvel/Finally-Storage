@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { syncHubCommands } from '../integration/deliveryHub';
 import { loadAppState, loadPreviewImage, saveAppState, savePreviewImage } from '../storage/appStorage';
-import { createEmptyCourier, createId, normalizeAppState } from '../utils/calculations';
+import {
+  DEFAULT_REPORT_CONFIG,
+  createEmptyCourier,
+  createId,
+  normalizeAppState
+} from '../utils/calculations';
 
 const AppStateContext = createContext(null);
 
@@ -120,6 +125,23 @@ export function AppStateProvider({ children }) {
     }));
   };
 
+  const setReportConfigField = (field, value) => {
+    updateState((previousState) => ({
+      ...previousState,
+      reportConfig: {
+        ...previousState.reportConfig,
+        [field]: value
+      }
+    }));
+  };
+
+  const resetReportConfig = () => {
+    updateState((previousState) => ({
+      ...previousState,
+      reportConfig: { ...DEFAULT_REPORT_CONFIG }
+    }));
+  };
+
   const clearIncomingOrders = () => {
     updateState((previousState) => ({
       ...previousState,
@@ -185,6 +207,8 @@ export function AppStateProvider({ children }) {
           removeRateConfig,
           setCashField,
           setHubConfigField,
+          setReportConfigField,
+          resetReportConfig,
           clearIncomingOrders,
           setPreviewImage,
           synchronizeHub

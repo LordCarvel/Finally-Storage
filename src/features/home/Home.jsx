@@ -31,6 +31,7 @@ const formatDateTime = (value) => {
 const buildSummaryHtml = (appState) => {
   const totals = calculateTotals(appState);
   const incomingPaymentTotals = totals.incomingPaymentTotals;
+  const reportConfig = appState.reportConfig;
 
   const rateHeaders = appState.rateConfigs
     .map(
@@ -95,20 +96,10 @@ const buildSummaryHtml = (appState) => {
       </tr>
     `;
 
-  return `
-    <div style="width:960px;max-width:960px;background:#ffffff;color:#000000;font-family:Inter,Arial,sans-serif;padding:18px;border:1px solid #d9d9d9;border-radius:18px;">
-      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px;">
-        <div>
-          <div style="color:#77a2e8;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Finally Storage</div>
-          <h2 style="margin:8px 0 0;font-size:24px;color:#5d89d3;">Fechamento de Caixa</h2>
-          <p style="margin:8px 0 0;font-size:12px;color:#555555;">Imagem gerada em escala reduzida para nao cortar no download.</p>
-        </div>
-        <div style="padding:12px 14px;background:#eef5ff;border-radius:14px;min-width:240px;">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#5c6e90;font-weight:700;">Total do Caixa</div>
-          <div style="margin-top:6px;font-size:26px;font-weight:800;color:#5d89d3;">R$ ${formatCurrency(totals.cashTotal)}</div>
-        </div>
-      </div>
+  const reportSections = [];
 
+  if (reportConfig.showSummaryCards) {
+    reportSections.push(`
       <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px;">
         <div style="padding:12px 14px;background:#fcfafa;border:1px solid #d9d9d9;border-radius:14px;">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#888888;font-weight:700;">Total Motoboys</div>
@@ -123,7 +114,11 @@ const buildSummaryHtml = (appState) => {
           <div style="margin-top:6px;font-size:20px;font-weight:800;color:#5d89d3;">${appState.rateConfigs.length}</div>
         </div>
       </div>
+    `);
+  }
 
+  if (reportConfig.showCourierTable) {
+    reportSections.push(`
       <div style="margin-bottom:18px;">
         <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Motoboys</h3>
         <table style="width:100%;border-collapse:collapse;">
@@ -138,41 +133,86 @@ const buildSummaryHtml = (appState) => {
           <tbody>${courierRows}</tbody>
         </table>
       </div>
+    `);
+  }
 
-      <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,0.9fr);gap:16px;">
-        <div>
-          <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Pedidos do EasyPrint</h3>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr>
-                <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Data</th>
-                <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Filial</th>
-                <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Pedido</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Dinheiro</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Cartao</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Online</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Total</th>
-              </tr>
-            </thead>
-            <tbody>${incomingRows}</tbody>
-          </table>
-        </div>
+  const sidePanels = [];
 
-        <div style="padding:14px;border:1px solid #d9d9d9;border-radius:16px;background:#fcfafa;">
-          <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Caixa</h3>
-          <div style="display:grid;gap:8px;font-size:12px;">
-            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Dinheiro</span><strong>R$ ${formatCurrency(appState.cash.dinheiro)}</strong></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Cartao</span><strong>R$ ${formatCurrency(appState.cash.cartao)}</strong></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Online</span><strong>R$ ${formatCurrency(appState.cash.online)}</strong></div>
+  if (reportConfig.showIncomingOrdersTable) {
+    sidePanels.push(`
+      <div>
+        <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Pedidos do EasyPrint</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Data</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Filial</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Pedido</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Dinheiro</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Cartao</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Online</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${incomingRows}</tbody>
+        </table>
+      </div>
+    `);
+  }
+
+  if (reportConfig.showManualCashDetails || reportConfig.showEasyPrintBreakdown) {
+    sidePanels.push(`
+      <div style="padding:14px;border:1px solid #d9d9d9;border-radius:16px;background:#fcfafa;">
+        <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Caixa</h3>
+        <div style="display:grid;gap:8px;font-size:12px;">
+          ${reportConfig.showManualCashDetails ? `
+            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Dinheiro manual</span><strong>R$ ${formatCurrency(appState.cash.dinheiro)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Cartao manual</span><strong>R$ ${formatCurrency(appState.cash.cartao)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Online manual</span><strong>R$ ${formatCurrency(appState.cash.online)}</strong></div>
+          ` : ''}
+          ${reportConfig.showEasyPrintBreakdown ? `
             <div style="display:flex;justify-content:space-between;gap:12px;"><span>EasyPrint dinheiro</span><strong>R$ ${formatCurrency(incomingPaymentTotals.dinheiro)}</strong></div>
             <div style="display:flex;justify-content:space-between;gap:12px;"><span>EasyPrint cartao</span><strong>R$ ${formatCurrency(incomingPaymentTotals.cartao)}</strong></div>
             <div style="display:flex;justify-content:space-between;gap:12px;"><span>EasyPrint online</span><strong>R$ ${formatCurrency(incomingPaymentTotals.online)}</strong></div>
             ${incomingPaymentTotals.unmapped
               ? `<div style="display:flex;justify-content:space-between;gap:12px;"><span>Nao classificado</span><strong>R$ ${formatCurrency(incomingPaymentTotals.unmapped)}</strong></div>`
               : ''}
-          </div>
+          ` : ''}
         </div>
       </div>
+    `);
+  }
+
+  if (sidePanels.length) {
+    reportSections.push(`
+      <div style="display:grid;grid-template-columns:${sidePanels.length > 1 ? 'minmax(0,1.1fr) minmax(280px,0.9fr)' : '1fr'};gap:16px;">
+        ${sidePanels.join('')}
+      </div>
+    `);
+  }
+
+  if (!reportSections.length) {
+    reportSections.push(`
+      <div style="padding:18px;border:1px solid #d9d9d9;border-radius:16px;background:#fcfafa;text-align:center;font-size:13px;color:#666666;">
+        Nenhuma secao detalhada selecionada. O relatorio vai sair apenas com o cabecalho e o total geral.
+      </div>
+    `);
+  }
+
+  return `
+    <div style="width:960px;max-width:960px;background:#ffffff;color:#000000;font-family:Inter,Arial,sans-serif;padding:18px;border:1px solid #d9d9d9;border-radius:18px;">
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <div style="color:#77a2e8;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Finally Storage</div>
+          <h2 style="margin:8px 0 0;font-size:24px;color:#5d89d3;">Fechamento de Caixa</h2>
+          <p style="margin:8px 0 0;font-size:12px;color:#555555;">Imagem gerada em escala reduzida para nao cortar no download.</p>
+        </div>
+        <div style="padding:12px 14px;background:#eef5ff;border-radius:14px;min-width:240px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#5c6e90;font-weight:700;">Total do Caixa</div>
+          <div style="margin-top:6px;font-size:26px;font-weight:800;color:#5d89d3;">R$ ${formatCurrency(totals.cashTotal)}</div>
+        </div>
+      </div>
+      ${reportSections.join('')}
     </div>
   `;
 };
@@ -184,6 +224,7 @@ export function Home() {
   const totals = useMemo(() => calculateTotals(appState), [appState]);
   const summaryHtml = useMemo(() => buildSummaryHtml(appState), [appState]);
   const incomingPaymentTotals = totals.incomingPaymentTotals;
+  const reportConfig = appState.reportConfig;
 
   const autosaveText = lastSavedAt
     ? `Autosave local ativo. Ultima gravacao: ${formatDateTime(lastSavedAt)}`
@@ -424,6 +465,85 @@ export function Home() {
         </article>
 
         <div className="home-side-column">
+          <article className="card">
+            <div className="section-header">
+              <div className="section-heading">
+                <h3 className="section-title">Configuracao do Relatorio</h3>
+                <p className="section-description">
+                  Escolha o que entra na imagem final para evitar um fechamento muito carregado.
+                </p>
+              </div>
+
+              <div className="section-actions">
+                <button type="button" className="btn btn-secondary" onClick={actions.resetReportConfig}>
+                  Restaurar padrao
+                </button>
+              </div>
+            </div>
+
+            <div className="report-config-grid">
+              <label className="field field-checkbox">
+                <input
+                  type="checkbox"
+                  checked={reportConfig.showSummaryCards}
+                  onChange={(event) => actions.setReportConfigField('showSummaryCards', event.target.checked)}
+                />
+                <div>
+                  <div className="field-label">Mostrar resumo superior</div>
+                  <div className="field-helper">Exibe os cards de totais no topo do relatorio.</div>
+                </div>
+              </label>
+
+              <label className="field field-checkbox">
+                <input
+                  type="checkbox"
+                  checked={reportConfig.showCourierTable}
+                  onChange={(event) => actions.setReportConfigField('showCourierTable', event.target.checked)}
+                />
+                <div>
+                  <div className="field-label">Mostrar tabela de motoboys</div>
+                  <div className="field-helper">Mantem o detalhamento por taxa de cada motoboy.</div>
+                </div>
+              </label>
+
+              <label className="field field-checkbox">
+                <input
+                  type="checkbox"
+                  checked={reportConfig.showIncomingOrdersTable}
+                  onChange={(event) => actions.setReportConfigField('showIncomingOrdersTable', event.target.checked)}
+                />
+                <div>
+                  <div className="field-label">Mostrar pedidos do EasyPrint</div>
+                  <div className="field-helper">Oculta a tabela dos pedidos recebidos quando quiser um layout mais limpo.</div>
+                </div>
+              </label>
+
+              <label className="field field-checkbox">
+                <input
+                  type="checkbox"
+                  checked={reportConfig.showManualCashDetails}
+                  onChange={(event) => actions.setReportConfigField('showManualCashDetails', event.target.checked)}
+                />
+                <div>
+                  <div className="field-label">Mostrar caixa manual</div>
+                  <div className="field-helper">Exibe dinheiro, cartao e online preenchidos manualmente.</div>
+                </div>
+              </label>
+
+              <label className="field field-checkbox">
+                <input
+                  type="checkbox"
+                  checked={reportConfig.showEasyPrintBreakdown}
+                  onChange={(event) => actions.setReportConfigField('showEasyPrintBreakdown', event.target.checked)}
+                />
+                <div>
+                  <div className="field-label">Mostrar rateio do EasyPrint</div>
+                  <div className="field-helper">Exibe o detalhamento por dinheiro, cartao e online vindo do EasyPrint.</div>
+                </div>
+              </label>
+            </div>
+          </article>
+
           <article className="card">
             <div className="section-heading">
               <h3 className="section-title">Caixa Final</h3>

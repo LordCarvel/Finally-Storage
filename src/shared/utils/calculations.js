@@ -15,6 +15,14 @@ export const DEFAULT_HUB_CONFIG = {
   defaultRateId: DEFAULT_RATE_CONFIGS[0].id
 };
 
+export const DEFAULT_REPORT_CONFIG = {
+  showSummaryCards: true,
+  showCourierTable: true,
+  showIncomingOrdersTable: false,
+  showManualCashDetails: true,
+  showEasyPrintBreakdown: true
+};
+
 export const parseNumber = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
 
@@ -162,6 +170,14 @@ export const normalizeHubConfig = (hubConfig = {}, rateConfigs = DEFAULT_RATE_CO
   };
 };
 
+export const normalizeReportConfig = (reportConfig = {}) => ({
+  showSummaryCards: reportConfig?.showSummaryCards !== false,
+  showCourierTable: reportConfig?.showCourierTable !== false,
+  showIncomingOrdersTable: Boolean(reportConfig?.showIncomingOrdersTable),
+  showManualCashDetails: reportConfig?.showManualCashDetails !== false,
+  showEasyPrintBreakdown: reportConfig?.showEasyPrintBreakdown !== false
+});
+
 export const normalizeAppState = (state = {}) => {
   const rateConfigs = normalizeRateConfigs(state.rateConfigs);
 
@@ -175,6 +191,7 @@ export const normalizeAppState = (state = {}) => {
     },
     incomingOrders: normalizeIncomingOrders(state.incomingOrders),
     hubConfig: normalizeHubConfig(state.hubConfig, rateConfigs),
+    reportConfig: normalizeReportConfig(state.reportConfig),
     processedCommandIds: Array.isArray(state.processedCommandIds)
       ? state.processedCommandIds.map((value) => String(value)).filter(Boolean).slice(-300)
       : [],
