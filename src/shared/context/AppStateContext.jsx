@@ -149,6 +149,24 @@ export function AppStateProvider({ children }) {
     }));
   };
 
+  const clearDayData = () => {
+    setPreviewImage({
+      dataUrl: '',
+      generatedAt: ''
+    });
+
+    updateState((previousState) => ({
+      ...previousState,
+      couriers: [createEmptyCourier(previousState.rateConfigs)],
+      cash: {
+        dinheiro: '',
+        cartao: '',
+        online: ''
+      },
+      incomingOrders: []
+    }));
+  };
+
   const synchronizeHub = async () => {
     if (syncInFlightRef.current) return;
 
@@ -210,6 +228,7 @@ export function AppStateProvider({ children }) {
           setReportConfigField,
           resetReportConfig,
           clearIncomingOrders,
+          clearDayData,
           setPreviewImage,
           synchronizeHub
         }

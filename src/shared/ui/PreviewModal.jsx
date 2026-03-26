@@ -62,7 +62,7 @@ export function PreviewModal({
         <div
           ref={contentRef}
           className="preview-content"
-          style={{ zoom: PREVIEW_ZOOM, width: '960px', maxWidth: '100%' }}
+          style={{ zoom: PREVIEW_ZOOM, width: '1160px', maxWidth: '100%' }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
 
