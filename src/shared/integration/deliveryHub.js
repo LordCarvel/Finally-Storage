@@ -1,8 +1,8 @@
 import {
   createEmptyCourier,
-  normalizeState,
+  normalizeAppState,
   parseNumber
-} from './calculations.js';
+} from '../utils/calculations';
 
 const RECENT_LOG_LIMIT = 8;
 const PROCESSED_COMMANDS_LIMIT = 300;
@@ -169,7 +169,7 @@ const applyCommandLocally = (state, command) => {
 };
 
 export const syncHubCommands = async (inputState) => {
-  let state = normalizeState(inputState);
+  let state = normalizeAppState(inputState);
   const config = state.hubConfig;
 
   if (!config.enabled || !config.projectId || !config.baseUrl) {
