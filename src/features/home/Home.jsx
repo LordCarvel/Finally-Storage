@@ -30,6 +30,7 @@ const formatDateTime = (value) => {
 
 const buildSummaryHtml = (appState) => {
   const totals = calculateTotals(appState);
+  const incomingPaymentTotals = totals.incomingPaymentTotals;
 
   const rateHeaders = appState.rateConfigs
     .map(
@@ -78,6 +79,9 @@ const buildSummaryHtml = (appState) => {
             <td style="padding:8px 10px;border-bottom:1px solid #ececec;font-size:12px;">${escapeHtml(order.operationalDate || '-')}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #ececec;font-size:12px;">${escapeHtml(order.sourceBranchName || '-')}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #ececec;font-size:12px;">${escapeHtml(order.hubOrderId || '-')}</td>
+            <td style="padding:8px 10px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;">${formatCurrency(order.cashAmount)}</td>
+            <td style="padding:8px 10px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;">${formatCurrency(order.cardAmount)}</td>
+            <td style="padding:8px 10px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;">${formatCurrency(order.onlineAmount)}</td>
             <td style="padding:8px 10px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;color:#5d89d3;font-weight:700;">${formatCurrency(order.totalAmount)}</td>
           </tr>
         `
@@ -85,8 +89,8 @@ const buildSummaryHtml = (appState) => {
       .join('')
     : `
       <tr>
-        <td colspan="4" style="padding:12px 10px;text-align:center;font-size:12px;color:#777777;">
-          Nenhum pedido do hub no fechamento.
+        <td colspan="7" style="padding:12px 10px;text-align:center;font-size:12px;color:#777777;">
+          Nenhum pedido do EasyPrint no fechamento.
         </td>
       </tr>
     `;
@@ -111,7 +115,7 @@ const buildSummaryHtml = (appState) => {
           <div style="margin-top:6px;font-size:20px;font-weight:800;color:#5d89d3;">R$ ${formatCurrency(totals.couriersTotal)}</div>
         </div>
         <div style="padding:12px 14px;background:#fcfafa;border:1px solid #d9d9d9;border-radius:14px;">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#888888;font-weight:700;">Pedidos do Hub</div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#888888;font-weight:700;">Pedidos do EasyPrint</div>
           <div style="margin-top:6px;font-size:20px;font-weight:800;color:#5d89d3;">R$ ${formatCurrency(totals.incomingOrdersTotal)}</div>
         </div>
         <div style="padding:12px 14px;background:#fcfafa;border:1px solid #d9d9d9;border-radius:14px;">
@@ -137,14 +141,17 @@ const buildSummaryHtml = (appState) => {
 
       <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,0.9fr);gap:16px;">
         <div>
-          <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Pedidos do Hub</h3>
+          <h3 style="margin:0 0 10px;color:#5d89d3;font-size:16px;">Pedidos do EasyPrint</h3>
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr>
                 <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Data</th>
                 <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Filial</th>
                 <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Pedido</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Valor</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Dinheiro</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Cartao</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Online</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;">Total</th>
               </tr>
             </thead>
             <tbody>${incomingRows}</tbody>
@@ -157,7 +164,12 @@ const buildSummaryHtml = (appState) => {
             <div style="display:flex;justify-content:space-between;gap:12px;"><span>Dinheiro</span><strong>R$ ${formatCurrency(appState.cash.dinheiro)}</strong></div>
             <div style="display:flex;justify-content:space-between;gap:12px;"><span>Cartao</span><strong>R$ ${formatCurrency(appState.cash.cartao)}</strong></div>
             <div style="display:flex;justify-content:space-between;gap:12px;"><span>Online</span><strong>R$ ${formatCurrency(appState.cash.online)}</strong></div>
-            <div style="display:flex;justify-content:space-between;gap:12px;"><span>Hub</span><strong>R$ ${formatCurrency(totals.incomingOrdersTotal)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;"><span>EasyPrint dinheiro</span><strong>R$ ${formatCurrency(incomingPaymentTotals.dinheiro)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;"><span>EasyPrint cartao</span><strong>R$ ${formatCurrency(incomingPaymentTotals.cartao)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;"><span>EasyPrint online</span><strong>R$ ${formatCurrency(incomingPaymentTotals.online)}</strong></div>
+            ${incomingPaymentTotals.unmapped
+              ? `<div style="display:flex;justify-content:space-between;gap:12px;"><span>Nao classificado</span><strong>R$ ${formatCurrency(incomingPaymentTotals.unmapped)}</strong></div>`
+              : ''}
           </div>
         </div>
       </div>
@@ -171,6 +183,7 @@ export function Home() {
 
   const totals = useMemo(() => calculateTotals(appState), [appState]);
   const summaryHtml = useMemo(() => buildSummaryHtml(appState), [appState]);
+  const incomingPaymentTotals = totals.incomingPaymentTotals;
 
   const autosaveText = lastSavedAt
     ? `Autosave local ativo. Ultima gravacao: ${formatDateTime(lastSavedAt)}`
@@ -223,15 +236,15 @@ export function Home() {
         </article>
 
         <article className="summary-card">
-          <span className="summary-label">Pedidos do Hub</span>
+          <span className="summary-label">Pedidos do EasyPrint</span>
           <strong className="summary-value">R$ {formatCurrency(totals.incomingOrdersTotal)}</strong>
-          <span className="summary-footnote">{appState.incomingOrders.length} pedido(s) somados ao caixa</span>
+          <span className="summary-footnote">{appState.incomingOrders.length} pedido(s) recebidos via hub</span>
         </article>
 
         <article className="summary-card">
           <span className="summary-label">Total Caixa</span>
           <strong className="summary-value">R$ {formatCurrency(totals.cashTotal)}</strong>
-          <span className="summary-footnote">Dinheiro + cartao + online + pedidos recebidos</span>
+          <span className="summary-footnote">Manual + EasyPrint separado por forma de pagamento</span>
         </article>
       </section>
 
@@ -356,9 +369,9 @@ export function Home() {
         <article className="card">
           <div className="section-header">
             <div className="section-heading">
-              <h3 className="section-title">Entradas do Hub</h3>
+              <h3 className="section-title">Pedidos do EasyPrint</h3>
               <p className="section-description">
-                Pedidos vindos do Delivery Hub entram aqui e somam automaticamente no caixa final.
+                Pedidos do EasyPrint recebidos via hub entram separados em dinheiro, cartao e online.
               </p>
             </div>
 
@@ -376,7 +389,10 @@ export function Home() {
                   <th>Data</th>
                   <th>Filial</th>
                   <th>Pedido</th>
-                  <th>Valor</th>
+                  <th>Dinheiro</th>
+                  <th>Cartao</th>
+                  <th>Online</th>
+                  <th>Total</th>
                   <th>Recebido</th>
                 </tr>
               </thead>
@@ -388,14 +404,17 @@ export function Home() {
                       <td data-label="Data">{order.operationalDate || '-'}</td>
                       <td data-label="Filial">{order.sourceBranchName || '-'}</td>
                       <td data-label="Pedido">{order.hubOrderId || '-'}</td>
-                      <td data-label="Valor">R$ {formatCurrency(order.totalAmount)}</td>
+                      <td data-label="Dinheiro">R$ {formatCurrency(order.cashAmount)}</td>
+                      <td data-label="Cartao">R$ {formatCurrency(order.cardAmount)}</td>
+                      <td data-label="Online">R$ {formatCurrency(order.onlineAmount)}</td>
+                      <td data-label="Total">R$ {formatCurrency(order.totalAmount)}</td>
                       <td data-label="Recebido">{formatDateTime(order.receivedAt)}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="empty-state">
-                      Nenhum pedido recebido do hub ainda.
+                    <td colSpan="8" className="empty-state">
+                      Nenhum pedido do EasyPrint recebido ainda.
                     </td>
                   </tr>
                 )}
@@ -409,13 +428,13 @@ export function Home() {
             <div className="section-heading">
               <h3 className="section-title">Caixa Final</h3>
               <p className="section-description">
-                Os valores manuais continuam separados do total vindo do hub.
+                Os valores manuais continuam editaveis e o EasyPrint entra separado por forma de pagamento.
               </p>
             </div>
 
             <div className="cash-grid">
               <label className="field">
-                <span className="field-label">Dinheiro (R$)</span>
+                <span className="field-label">Dinheiro manual (R$)</span>
                 <input
                   type="number"
                   step="0.01"
@@ -427,7 +446,7 @@ export function Home() {
               </label>
 
               <label className="field">
-                <span className="field-label">Cartao (R$)</span>
+                <span className="field-label">Cartao manual (R$)</span>
                 <input
                   type="number"
                   step="0.01"
@@ -439,7 +458,7 @@ export function Home() {
               </label>
 
               <label className="field">
-                <span className="field-label">Online (R$)</span>
+                <span className="field-label">Online manual (R$)</span>
                 <input
                   type="number"
                   step="0.01"
@@ -451,11 +470,41 @@ export function Home() {
               </label>
 
               <label className="field">
-                <span className="field-label">Pedidos do Hub (R$)</span>
+                <span className="field-label">EasyPrint dinheiro (R$)</span>
                 <input
                   type="text"
                   className="input"
-                  value={formatCurrency(totals.incomingOrdersTotal)}
+                  value={formatCurrency(incomingPaymentTotals.dinheiro)}
+                  readOnly
+                />
+              </label>
+
+              <label className="field">
+                <span className="field-label">EasyPrint cartao (R$)</span>
+                <input
+                  type="text"
+                  className="input"
+                  value={formatCurrency(incomingPaymentTotals.cartao)}
+                  readOnly
+                />
+              </label>
+
+              <label className="field">
+                <span className="field-label">EasyPrint online (R$)</span>
+                <input
+                  type="text"
+                  className="input"
+                  value={formatCurrency(incomingPaymentTotals.online)}
+                  readOnly
+                />
+              </label>
+
+              <label className="field">
+                <span className="field-label">EasyPrint nao classificado (R$)</span>
+                <input
+                  type="text"
+                  className="input"
+                  value={formatCurrency(incomingPaymentTotals.unmapped)}
                   readOnly
                 />
               </label>

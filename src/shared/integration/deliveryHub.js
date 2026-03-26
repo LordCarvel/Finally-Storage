@@ -1,5 +1,6 @@
 import {
   createEmptyCourier,
+  normalizePaymentMethod,
   normalizeAppState,
   parseNumber
 } from '../utils/calculations';
@@ -88,6 +89,18 @@ const applyIncomingOrderToCash = (state, command) => {
     return appendHubLog(state, `Pedido ${hubOrderId} ja estava no caixa local.`);
   }
 
+  const paymentMethod = normalizePaymentMethod(payload.paymentMethod);
+  let cashAmount = parseNumber(payload.cashAmount ?? payload.dinheiroAmount);
+  let cardAmount = parseNumber(payload.cardAmount ?? payload.cartaoAmount);
+  let onlineAmount = parseNumber(payload.onlineAmount);
+  const totalAmount = parseNumber(payload.totalAmount);
+
+  if (!cashAmount && !cardAmount && !onlineAmount && totalAmount && paymentMethod) {
+    if (paymentMethod === 'dinheiro') cashAmount = totalAmount;
+    if (paymentMethod === 'cartao') cardAmount = totalAmount;
+    if (paymentMethod === 'online') onlineAmount = totalAmount;
+  }
+
   return appendHubLog(
     {
       ...state,
@@ -97,13 +110,17 @@ const applyIncomingOrderToCash = (state, command) => {
           hubOrderId,
           sourceBranchId: String(payload.sourceBranchId || '').trim(),
           sourceBranchName: String(payload.sourceBranchName || '').trim(),
-          totalAmount: parseNumber(payload.totalAmount),
+          paymentMethod,
+          cashAmount,
+          cardAmount,
+          onlineAmount,
+          totalAmount,
           operationalDate: String(payload.operationalDate || '').trim(),
           receivedAt: new Date().toISOString()
         }
       ]
     },
-    `Pedido ${hubOrderId} adicionado ao caixa a partir do hub.`
+    `Pedido ${hubOrderId} adicionado ao caixa a partir do EasyPrint via hub.`
   );
 };
 

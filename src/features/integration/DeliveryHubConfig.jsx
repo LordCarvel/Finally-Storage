@@ -211,7 +211,7 @@ export function DeliveryHubConfig() {
           <div className="contract-list">
             <div className="contract-list-item">
               <strong>apply_incoming_order_to_cash</strong>
-              <span>Adiciona pedido recebido ao fechamento local.</span>
+              <span>Adiciona pedido recebido ao fechamento local, com rateio em dinheiro, cartao e online quando vier do EasyPrint.</span>
             </div>
 
             <div className="contract-list-item">

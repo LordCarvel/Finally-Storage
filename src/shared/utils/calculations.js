@@ -1,5 +1,6 @@
 export const DEFAULT_RATE_CONFIGS = [
   { id: 'taxa-normal', name: 'Taxa normal', value: 0 },
+  { id: 'taxa-arrancada', name: 'Taxa de arrancada', value: 0 },
   { id: 'picarras-1', name: 'Picarras 1', value: 0 },
   { id: 'picarras-2', name: 'Picarras 2', value: 0 },
   { id: 'picarras-3', name: 'Picarras 3', value: 0 }
@@ -40,16 +41,46 @@ export const getOperationalDate = (date = new Date()) => {
 export const createId = (prefix = 'id') =>
   `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
+export const normalizePaymentMethod = (value = '') => {
+  const normalized = String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  if (!normalized) return '';
+  if (normalized === 'cash' || normalized === 'dinheiro') return 'dinheiro';
+  if (normalized === 'card' || normalized === 'cartao') return 'cartao';
+  if (normalized === 'online') return 'online';
+
+  return normalized;
+};
+
 export const normalizeRateConfigs = (rateConfigs = []) => {
   const source = Array.isArray(rateConfigs) && rateConfigs.length
     ? rateConfigs
     : DEFAULT_RATE_CONFIGS;
 
-  return source.map((rate, index) => ({
+  const normalizedRates = source.map((rate, index) => ({
     id: String(rate?.id || createId('rate')),
-    name: String(rate?.name || `Taxa ${index + 1}`).trim(),
+    name: rate?.name === undefined || rate?.name === null
+      ? `Taxa ${index + 1}`
+      : String(rate.name),
     value: parseNumber(rate?.value)
   }));
+
+  if (!normalizedRates.some((rate) => rate.id === 'taxa-arrancada')) {
+    const arrancadaRate = { ...DEFAULT_RATE_CONFIGS.find((rate) => rate.id === 'taxa-arrancada') };
+    const normalRateIndex = normalizedRates.findIndex((rate) => rate.id === 'taxa-normal');
+
+    if (normalRateIndex >= 0) {
+      normalizedRates.splice(normalRateIndex + 1, 0, arrancadaRate);
+    } else {
+      normalizedRates.unshift(arrancadaRate);
+    }
+  }
+
+  return normalizedRates;
 };
 
 export const createEmptyCourier = (rateConfigs = DEFAULT_RATE_CONFIGS, courier = {}) => {
@@ -81,14 +112,36 @@ export const normalizeCouriers = (couriers = [], rateConfigs = DEFAULT_RATE_CONF
 export const normalizeIncomingOrders = (incomingOrders = []) =>
   (Array.isArray(incomingOrders) ? incomingOrders : [])
     .filter(Boolean)
-    .map((order) => ({
-      hubOrderId: String(order?.hubOrderId || '').trim(),
-      sourceBranchId: String(order?.sourceBranchId || '').trim(),
-      sourceBranchName: String(order?.sourceBranchName || '').trim(),
-      totalAmount: parseNumber(order?.totalAmount),
-      operationalDate: String(order?.operationalDate || '').trim(),
-      receivedAt: String(order?.receivedAt || '').trim()
-    }));
+    .map((order) => {
+      const paymentMethod = normalizePaymentMethod(order?.paymentMethod);
+      let cashAmount = parseNumber(order?.cashAmount ?? order?.dinheiroAmount);
+      let cardAmount = parseNumber(order?.cardAmount ?? order?.cartaoAmount);
+      let onlineAmount = parseNumber(order?.onlineAmount);
+      const fallbackTotal = parseNumber(order?.totalAmount);
+
+      if (!cashAmount && !cardAmount && !onlineAmount && fallbackTotal && paymentMethod) {
+        if (paymentMethod === 'dinheiro') cashAmount = fallbackTotal;
+        if (paymentMethod === 'cartao') cardAmount = fallbackTotal;
+        if (paymentMethod === 'online') onlineAmount = fallbackTotal;
+      }
+
+      const splitTotal = cashAmount + cardAmount + onlineAmount;
+      const unmappedAmount = Math.max(0, fallbackTotal - splitTotal);
+
+      return {
+        hubOrderId: String(order?.hubOrderId || '').trim(),
+        sourceBranchId: String(order?.sourceBranchId || '').trim(),
+        sourceBranchName: String(order?.sourceBranchName || '').trim(),
+        paymentMethod,
+        cashAmount,
+        cardAmount,
+        onlineAmount,
+        unmappedAmount,
+        totalAmount: splitTotal || fallbackTotal,
+        operationalDate: String(order?.operationalDate || '').trim(),
+        receivedAt: String(order?.receivedAt || '').trim()
+      };
+    });
 
 export const normalizeHubConfig = (hubConfig = {}, rateConfigs = DEFAULT_RATE_CONFIGS) => {
   const rates = normalizeRateConfigs(rateConfigs);
@@ -154,6 +207,24 @@ export const calculateIncomingOrdersTotal = (incomingOrders = []) =>
     0
   );
 
+export const calculateIncomingPaymentTotals = (incomingOrders = []) =>
+  normalizeIncomingOrders(incomingOrders).reduce(
+    (accumulator, order) => ({
+      dinheiro: accumulator.dinheiro + parseNumber(order.cashAmount),
+      cartao: accumulator.cartao + parseNumber(order.cardAmount),
+      online: accumulator.online + parseNumber(order.onlineAmount),
+      unmapped: accumulator.unmapped + parseNumber(order.unmappedAmount),
+      total: accumulator.total + parseNumber(order.totalAmount)
+    }),
+    {
+      dinheiro: 0,
+      cartao: 0,
+      online: 0,
+      unmapped: 0,
+      total: 0
+    }
+  );
+
 export const calculateCashTotal = (cash = {}, incomingOrders = []) =>
   parseNumber(cash.dinheiro)
   + parseNumber(cash.cartao)
@@ -169,6 +240,7 @@ export const calculateTotals = (state) => {
 
   return {
     couriersTotal,
+    incomingPaymentTotals: calculateIncomingPaymentTotals(normalizedState.incomingOrders),
     incomingOrdersTotal: calculateIncomingOrdersTotal(normalizedState.incomingOrders),
     cashTotal: calculateCashTotal(normalizedState.cash, normalizedState.incomingOrders)
   };
