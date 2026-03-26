@@ -16,7 +16,7 @@ export const DEFAULT_HUB_CONFIG = {
 };
 
 export const DEFAULT_REPORT_CONFIG = {
-  showSummaryCards: true,
+  showSummaryCards: false,
   showCourierTable: true,
   showIncomingOrdersTable: false,
   showManualCashDetails: true,
