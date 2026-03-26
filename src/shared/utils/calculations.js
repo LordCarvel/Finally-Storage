@@ -171,11 +171,11 @@ export const normalizeHubConfig = (hubConfig = {}, rateConfigs = DEFAULT_RATE_CO
 };
 
 export const normalizeReportConfig = (reportConfig = {}) => ({
-  showSummaryCards: reportConfig?.showSummaryCards !== false,
-  showCourierTable: reportConfig?.showCourierTable !== false,
-  showIncomingOrdersTable: Boolean(reportConfig?.showIncomingOrdersTable),
-  showManualCashDetails: reportConfig?.showManualCashDetails !== false,
-  showEasyPrintBreakdown: reportConfig?.showEasyPrintBreakdown !== false
+  showSummaryCards: reportConfig?.showSummaryCards ?? DEFAULT_REPORT_CONFIG.showSummaryCards,
+  showCourierTable: reportConfig?.showCourierTable ?? DEFAULT_REPORT_CONFIG.showCourierTable,
+  showIncomingOrdersTable: reportConfig?.showIncomingOrdersTable ?? DEFAULT_REPORT_CONFIG.showIncomingOrdersTable,
+  showManualCashDetails: reportConfig?.showManualCashDetails ?? DEFAULT_REPORT_CONFIG.showManualCashDetails,
+  showEasyPrintBreakdown: reportConfig?.showEasyPrintBreakdown ?? DEFAULT_REPORT_CONFIG.showEasyPrintBreakdown
 });
 
 export const normalizeAppState = (state = {}) => {

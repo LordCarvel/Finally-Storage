@@ -4,6 +4,7 @@ import { useAppState } from '../../shared/context/AppStateContext';
 import { Icon } from '../../shared/ui/Icon';
 import { PreviewModal } from '../../shared/ui/PreviewModal';
 import {
+  calculateCourierBaseTotal,
   calculateCourierTotal,
   calculateTotals,
   formatCurrency
@@ -32,66 +33,40 @@ const buildSummaryHtml = (appState) => {
   const totals = calculateTotals(appState);
   const incomingPaymentTotals = totals.incomingPaymentTotals;
   const reportConfig = appState.reportConfig;
-  const hasCashPanel = reportConfig.showManualCashDetails || reportConfig.showEasyPrintBreakdown;
-
-  const rateHeaders = appState.rateConfigs
-    .map(
-      (rate) => `
-        <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">
-          ${escapeHtml(rate.name)}
-        </th>
-      `
-    )
-    .join('');
-
-  const courierRows = appState.couriers
+  const courierRowsCompact = appState.couriers
     .map((courier) => {
-      const counts = appState.rateConfigs
-        .map(
-          (rate) => `
-            <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">
-              ${escapeHtml(courier.countsByRate[rate.id] || '0')}
-            </td>
-          `
-        )
-        .join('');
+      const totalDeliveries = appState.rateConfigs.reduce(
+        (accumulator, rate) => accumulator + Number(courier.countsByRate[rate.id] || 0),
+        0
+      );
 
       return `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">
-            ${escapeHtml(courier.name || '-')}
-          </td>
-          ${counts}
-          <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">
-            ${escapeHtml(courier.adjustmentSign)}${formatCurrency(courier.adjustmentValue || 0)}
-          </td>
-          <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;color:#5d89d3;font-weight:700;line-height:1.6;">
-            ${formatCurrency(calculateCourierTotal(courier, appState.rateConfigs))}
-          </td>
+          <td style="padding:10px 12px;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${escapeHtml(courier.name || '-')}</td>
+          <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${totalDeliveries}</td>
+          <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${formatCurrency(calculateCourierBaseTotal(courier, appState.rateConfigs))}</td>
+          <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${escapeHtml(courier.adjustmentSign)}${formatCurrency(courier.adjustmentValue || 0)}</td>
+          <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #dddddd;font-size:12px;font-weight:700;line-height:1.8;">${formatCurrency(calculateCourierTotal(courier, appState.rateConfigs))}</td>
         </tr>
       `;
     })
     .join('');
 
-  const incomingRows = appState.incomingOrders.length
+  const incomingRowsCompact = appState.incomingOrders.length
     ? appState.incomingOrders
       .map(
         (order) => `
           <tr>
-            <td style="padding:10px 12px;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">${escapeHtml(order.operationalDate || '-')}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">${escapeHtml(order.sourceBranchName || '-')}</td>
-            <td style="padding:10px 12px;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">${escapeHtml(order.hubOrderId || '-')}</td>
-            <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">${formatCurrency(order.cashAmount)}</td>
-            <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">${formatCurrency(order.cardAmount)}</td>
-            <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;line-height:1.6;">${formatCurrency(order.onlineAmount)}</td>
-            <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #ececec;font-size:12px;color:#5d89d3;font-weight:700;line-height:1.6;">${formatCurrency(order.totalAmount)}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${escapeHtml(order.hubOrderId || '-')}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${escapeHtml(order.sourceBranchName || '-')}</td>
+            <td style="padding:10px 12px;text-align:right;border-bottom:1px solid #dddddd;font-size:12px;line-height:1.8;">${formatCurrency(order.totalAmount)}</td>
           </tr>
         `
       )
       .join('')
     : `
       <tr>
-        <td colspan="7" style="padding:16px 12px;text-align:center;font-size:12px;color:#777777;line-height:1.7;">
+        <td colspan="3" style="padding:14px 12px;text-align:center;font-size:12px;color:#777777;line-height:1.8;">
           Nenhum pedido do EasyPrint no fechamento.
         </td>
       </tr>
@@ -101,114 +76,96 @@ const buildSummaryHtml = (appState) => {
 
   if (reportConfig.showSummaryCards) {
     reportSections.push(`
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px;">
-        <div style="padding:14px 16px;background:#fcfafa;border:1px solid #d9d9d9;border-radius:14px;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888888;font-weight:700;line-height:1.5;">Total Motoboys</div>
-          <div style="margin-top:6px;font-size:20px;font-weight:800;color:#5d89d3;">R$ ${formatCurrency(totals.couriersTotal)}</div>
-        </div>
-        <div style="padding:14px 16px;background:#fcfafa;border:1px solid #d9d9d9;border-radius:14px;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888888;font-weight:700;line-height:1.5;">Pedidos do EasyPrint</div>
-          <div style="margin-top:6px;font-size:20px;font-weight:800;color:#5d89d3;">R$ ${formatCurrency(totals.incomingOrdersTotal)}</div>
-        </div>
-        <div style="padding:14px 16px;background:#fcfafa;border:1px solid #d9d9d9;border-radius:14px;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#888888;font-weight:700;line-height:1.5;">Taxas Ativas</div>
-          <div style="margin-top:6px;font-size:20px;font-weight:800;color:#5d89d3;">${appState.rateConfigs.length}</div>
-        </div>
+      <div style="margin-bottom:18px;font-size:12px;line-height:1.9;color:#333333;">
+        <strong>Total motoboys:</strong> R$ ${formatCurrency(totals.couriersTotal)}
+        <span style="display:inline-block;margin:0 12px;">|</span>
+        <strong>EasyPrint:</strong> R$ ${formatCurrency(totals.incomingOrdersTotal)}
+        <span style="display:inline-block;margin:0 12px;">|</span>
+        <strong>Total caixa:</strong> R$ ${formatCurrency(totals.cashTotal)}
       </div>
     `);
   }
 
-  if (reportConfig.showCourierTable || hasCashPanel) {
+  if (reportConfig.showCourierTable) {
     reportSections.push(`
-      <div style="display:grid;grid-template-columns:${reportConfig.showCourierTable && hasCashPanel ? 'minmax(0,1.2fr) minmax(280px,0.8fr)' : '1fr'};gap:18px;margin-bottom:${reportConfig.showIncomingOrdersTable ? '22px' : '0'};">
-        ${reportConfig.showCourierTable ? `
-        <div style="padding:16px;border:1px solid #d9d9d9;border-radius:16px;background:#ffffff;">
-          <h3 style="margin:0 0 12px;color:#5d89d3;font-size:16px;line-height:1.5;">Motoboys e fechamento</h3>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr>
-                <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Nome</th>
-                ${rateHeaders}
-                <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Ajuste</th>
-                <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Total</th>
-              </tr>
-            </thead>
-            <tbody>${courierRows}</tbody>
-          </table>
+      <section style="margin-bottom:24px;">
+        <h3 style="margin:0 0 12px;font-size:18px;color:#222222;line-height:1.5;">Motoboys</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f2f2f2;">
+              <th style="padding:10px 12px;text-align:left;font-size:12px;line-height:1.6;">Nome</th>
+              <th style="padding:10px 12px;text-align:right;font-size:12px;line-height:1.6;">Entregas</th>
+              <th style="padding:10px 12px;text-align:right;font-size:12px;line-height:1.6;">Valor</th>
+              <th style="padding:10px 12px;text-align:right;font-size:12px;line-height:1.6;">Ajuste</th>
+              <th style="padding:10px 12px;text-align:right;font-size:12px;line-height:1.6;">Total</th>
+            </tr>
+          </thead>
+          <tbody>${courierRowsCompact}</tbody>
+        </table>
+        <div style="margin-top:16px;font-size:13px;line-height:1.9;">
+          <strong>Total Motoboys:</strong> R$ ${formatCurrency(totals.couriersTotal)}
         </div>
-        ` : ''}
-        ${hasCashPanel ? `
-        <div style="padding:16px;border:1px solid #d9d9d9;border-radius:16px;background:#fcfafa;">
-          <h3 style="margin:0 0 12px;color:#5d89d3;font-size:16px;line-height:1.5;">Caixa final</h3>
-          <div style="display:grid;gap:10px;font-size:12px;line-height:1.7;">
-            ${reportConfig.showManualCashDetails ? `
-              <div style="display:flex;justify-content:space-between;gap:18px;"><span>Dinheiro manual</span><strong>R$ ${formatCurrency(appState.cash.dinheiro)}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:18px;"><span>Cartao manual</span><strong>R$ ${formatCurrency(appState.cash.cartao)}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:18px;"><span>Online manual</span><strong>R$ ${formatCurrency(appState.cash.online)}</strong></div>
-            ` : ''}
-            ${reportConfig.showEasyPrintBreakdown ? `
-              <div style="display:flex;justify-content:space-between;gap:18px;"><span>EasyPrint dinheiro</span><strong>R$ ${formatCurrency(incomingPaymentTotals.dinheiro)}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:18px;"><span>EasyPrint cartao</span><strong>R$ ${formatCurrency(incomingPaymentTotals.cartao)}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:18px;"><span>EasyPrint online</span><strong>R$ ${formatCurrency(incomingPaymentTotals.online)}</strong></div>
-              ${incomingPaymentTotals.unmapped
-                ? `<div style="display:flex;justify-content:space-between;gap:18px;"><span>Nao classificado</span><strong>R$ ${formatCurrency(incomingPaymentTotals.unmapped)}</strong></div>`
-                : ''}
-            ` : ''}
-            <div style="margin-top:4px;padding-top:10px;border-top:1px solid #d9d9d9;display:flex;justify-content:space-between;gap:18px;font-size:14px;">
-              <span style="font-weight:700;">Total geral</span>
-              <strong style="color:#5d89d3;font-size:18px;">R$ ${formatCurrency(totals.cashTotal)}</strong>
-            </div>
-          </div>
+      </section>
+    `);
+  }
+
+  if (reportConfig.showManualCashDetails || reportConfig.showEasyPrintBreakdown) {
+    reportSections.push(`
+      <section style="margin-bottom:${reportConfig.showIncomingOrdersTable ? '24px' : '0'};">
+        <h3 style="margin:0 0 12px;font-size:18px;color:#222222;line-height:1.5;">Caixa Final</h3>
+        <div style="display:grid;gap:8px;font-size:13px;line-height:2;">
+          ${reportConfig.showManualCashDetails ? `
+            <div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>Dinheiro manual:</span><strong>R$ ${formatCurrency(appState.cash.dinheiro)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>Cartao manual:</span><strong>R$ ${formatCurrency(appState.cash.cartao)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>Online manual:</span><strong>R$ ${formatCurrency(appState.cash.online)}</strong></div>
+          ` : ''}
+          ${reportConfig.showEasyPrintBreakdown ? `
+            <div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>EasyPrint dinheiro:</span><strong>R$ ${formatCurrency(incomingPaymentTotals.dinheiro)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>EasyPrint cartao:</span><strong>R$ ${formatCurrency(incomingPaymentTotals.cartao)}</strong></div>
+            <div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>EasyPrint online:</span><strong>R$ ${formatCurrency(incomingPaymentTotals.online)}</strong></div>
+            ${incomingPaymentTotals.unmapped
+              ? `<div style="display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid #dddddd;padding-bottom:4px;"><span>EasyPrint nao classificado:</span><strong>R$ ${formatCurrency(incomingPaymentTotals.unmapped)}</strong></div>`
+              : ''}
+          ` : ''}
         </div>
-        ` : ''}
-      </div>
+        <div style="margin-top:16px;font-size:13px;line-height:1.9;">
+          <strong>Total Caixa:</strong> R$ ${formatCurrency(totals.cashTotal)}
+        </div>
+      </section>
     `);
   }
 
   if (reportConfig.showIncomingOrdersTable) {
     reportSections.push(`
-      <div style="padding:16px;border:1px solid #d9d9d9;border-radius:16px;background:#ffffff;">
-        <h3 style="margin:0 0 12px;color:#5d89d3;font-size:16px;line-height:1.5;">Pedidos do EasyPrint</h3>
+      <section style="margin-top:24px;">
+        <h3 style="margin:0 0 12px;font-size:18px;color:#222222;line-height:1.5;">Pedidos do EasyPrint</h3>
         <table style="width:100%;border-collapse:collapse;">
           <thead>
-            <tr>
-              <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Data</th>
-              <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Filial</th>
-              <th style="padding:10px 12px;text-align:left;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Pedido</th>
-              <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Dinheiro</th>
-              <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Cartao</th>
-              <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Online</th>
-              <th style="padding:10px 12px;text-align:right;border-bottom:1px solid #d9d9d9;color:#5d89d3;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;line-height:1.5;">Total</th>
+            <tr style="background:#f2f2f2;">
+              <th style="padding:10px 12px;text-align:left;font-size:12px;line-height:1.6;">Pedido</th>
+              <th style="padding:10px 12px;text-align:left;font-size:12px;line-height:1.6;">Filial</th>
+              <th style="padding:10px 12px;text-align:right;font-size:12px;line-height:1.6;">Total</th>
             </tr>
           </thead>
-          <tbody>${incomingRows}</tbody>
+          <tbody>${incomingRowsCompact}</tbody>
         </table>
-      </div>
+      </section>
     `);
   }
 
   if (!reportSections.length) {
     reportSections.push(`
-      <div style="padding:20px;border:1px solid #d9d9d9;border-radius:16px;background:#fcfafa;text-align:center;font-size:13px;color:#666666;line-height:1.8;">
-        Nenhuma secao detalhada selecionada. O relatorio vai sair apenas com o cabecalho e o total geral.
+      <div style="padding:18px 0;font-size:13px;color:#666666;line-height:1.9;">
+        Nenhuma secao detalhada selecionada. O relatorio vai sair apenas com o titulo e o total geral.
       </div>
     `);
   }
 
   return `
-    <div style="width:980px;max-width:980px;background:#ffffff;color:#000000;font-family:Inter,Arial,sans-serif;padding:22px;border:1px solid #d9d9d9;border-radius:20px;">
-      <div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px;">
-        <div>
-          <div style="color:#77a2e8;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;line-height:1.6;">Finally Storage</div>
-          <h2 style="margin:10px 0 0;font-size:24px;color:#5d89d3;line-height:1.4;">Fechamento de Caixa</h2>
-          <p style="margin:10px 0 0;font-size:12px;color:#666666;line-height:1.8;">Relatorio otimizado para leitura rapida.</p>
-        </div>
-        <div style="padding:16px 18px;background:#eef5ff;border-radius:16px;min-width:250px;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#5c6e90;font-weight:700;line-height:1.5;">Total do Caixa</div>
-          <div style="margin-top:8px;font-size:26px;font-weight:800;color:#5d89d3;line-height:1.4;">R$ ${formatCurrency(totals.cashTotal)}</div>
-        </div>
-      </div>
+    <div style="width:780px;max-width:780px;background:#ffffff;color:#222222;font-family:Inter,Arial,sans-serif;padding:24px 34px;">
+      <h2 style="margin:0 0 18px;text-align:center;font-size:20px;color:#77a2e8;line-height:1.5;">Fechamento de Caixa</h2>
       ${reportSections.join('')}
+      <div style="margin-top:20px;text-align:center;font-size:11px;color:#7a7a7a;line-height:1.8;">${new Date().getFullYear()} - LordCarvel</div>
     </div>
   `;
 };
