@@ -13,10 +13,11 @@ function AppContent() {
       <div className="container">
         <div className="page-view">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Navigate to="/funcoes" replace />} />
+            <Route path="/funcoes" element={<Home />} />
             <Route path="/taxas" element={<RateConfig />} />
             <Route path="/integracao-hub" element={<DeliveryHubConfig />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/funcoes" replace />} />
           </Routes>
         </div>
       </div>

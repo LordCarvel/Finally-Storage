@@ -3,7 +3,7 @@ import { Icon } from '../../shared/ui/Icon';
 import './Header.css';
 
 const links = [
-  { to: '/', label: 'Fechamento' },
+  { to: '/funcoes', label: 'Funcoes' },
   { to: '/taxas', label: 'Taxas' },
   { to: '/integracao-hub', label: 'Hub' }
 ];
@@ -17,7 +17,7 @@ export function Header() {
       return;
     }
 
-    navigate('/');
+    navigate('/funcoes');
   };
 
   return (
@@ -42,7 +42,7 @@ export function Header() {
             key={link.to}
             to={link.to}
             className={({ isActive }) => `header-link ${isActive ? 'active' : ''}`}
-            end={link.to === '/'}
+            end={link.to === '/funcoes'}
           >
             {link.label}
           </NavLink>

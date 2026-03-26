@@ -190,11 +190,11 @@ export function Home() {
     <div className="page-shell">
       <section className="page-hero">
         <div>
-          <p className="page-eyebrow">Finally Storage</p>
-          <h2 className="page-title">Fechamento de caixa com taxas dinamicas</h2>
+          <p className="page-eyebrow">Funcoes do Projeto</p>
+          <h2 className="page-title">Operacao diaria separada das configuracoes</h2>
           <p className="page-description">
-            O fechamento continua na tela principal. As configuracoes de taxas e do Delivery Hub ficam
-            separadas, em paginas proprias, sem misturar o fluxo operacional do dia.
+            Esta pagina fica so com as funcoes operacionais do app: fechamento, motoboys, entradas do hub,
+            caixa final e exportacao da imagem. Taxas e Hub ficam nas paginas separadas de configuracao.
           </p>
         </div>
 
