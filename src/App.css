@@ -382,6 +382,15 @@
   transform-origin: top left;
 }
 
+.preview-capture-root {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+  isolation: isolate;
+}
+
 .preview-image-slot {
   margin-top: 1rem;
   display: flex;
@@ -392,6 +401,21 @@
   max-width: 100%;
   border-radius: 16px;
   border: 1px solid var(--color-light-gray-model-two);
+}
+
+.preview-placeholder {
+  width: 100%;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  border: 1px dashed var(--color-light-gray-model-two);
+  border-radius: 16px;
+  background: var(--color-dark-white);
+  color: #666666;
+  font-size: 0.95rem;
+  text-align: center;
 }
 
 .preview-controls {

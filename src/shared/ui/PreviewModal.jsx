@@ -1,7 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 
-const PREVIEW_ZOOM = 0.75;
+const CAPTURE_SCALE = 2;
+
+const waitForStableLayout = async () => {
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+};
 
 export function PreviewModal({
   html,
@@ -9,7 +18,7 @@ export function PreviewModal({
   onClose,
   onGenerated
 }) {
-  const contentRef = useRef(null);
+  const onGeneratedRef = useRef(onGenerated);
   const [generatedImage, setGeneratedImage] = useState(initialImage);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -18,21 +27,40 @@ export function PreviewModal({
     return () => document.body.classList.remove('preview-open');
   }, []);
 
-  const handleGenerate = async () => {
-    if (!contentRef.current) return;
+  useEffect(() => {
+    onGeneratedRef.current = onGenerated;
+  }, [onGenerated]);
 
+  const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
 
+    const captureHost = document.createElement('div');
+    captureHost.className = 'preview-capture-root';
+    captureHost.innerHTML = html;
+    document.body.appendChild(captureHost);
+
+    const captureNode = captureHost.firstElementChild;
+
     try {
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
+      if (!captureNode) {
+        throw new Error('Capture node not created.');
+      }
+
+      await waitForStableLayout();
+
+      const canvas = await html2canvas(captureNode, {
+        scale: CAPTURE_SCALE,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        width: captureNode.scrollWidth,
+        height: captureNode.scrollHeight,
+        windowWidth: captureNode.scrollWidth,
+        windowHeight: captureNode.scrollHeight
       });
 
       const dataUrl = canvas.toDataURL('image/png');
       setGeneratedImage(dataUrl);
-      onGenerated({
+      onGeneratedRef.current?.({
         dataUrl,
         generatedAt: new Date().toISOString()
       });
@@ -40,9 +68,14 @@ export function PreviewModal({
       console.error(error);
       alert('Nao foi possivel gerar a pre-visualizacao da imagem.');
     } finally {
+      captureHost.remove();
       setIsGenerating(false);
     }
-  };
+  }, [html]);
+
+  useEffect(() => {
+    void handleGenerate();
+  }, [handleGenerate]);
 
   const handleDownload = () => {
     if (!generatedImage) {
@@ -59,29 +92,26 @@ export function PreviewModal({
   return (
     <div className="preview-overlay" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <div className="preview-panel">
-        <div
-          ref={contentRef}
-          className="preview-content"
-          style={{ zoom: PREVIEW_ZOOM, width: '1160px', maxWidth: '100%' }}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-
-        {generatedImage ? (
-          <div className="preview-image-slot">
+        <div className="preview-image-slot">
+          {generatedImage ? (
             <img
               className="preview-generated-image"
               src={generatedImage}
               alt="Previa do fechamento"
             />
-          </div>
-        ) : null}
+          ) : (
+            <div className="preview-placeholder">
+              {isGenerating ? 'Gerando imagem...' : 'A pre-visualizacao aparecera aqui.'}
+            </div>
+          )}
+        </div>
 
         <div className="preview-controls">
           <button type="button" className="btn-modal-secondary" onClick={onClose}>
             Fechar
           </button>
           <button type="button" className="btn-modal-primary" onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? 'Gerando...' : 'Gerar pre-visualizacao'}
+            {isGenerating ? 'Gerando...' : 'Gerar novamente'}
           </button>
           <button type="button" className="btn-modal-primary" onClick={handleDownload} disabled={!generatedImage}>
             Baixar imagem

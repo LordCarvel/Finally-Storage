@@ -162,7 +162,7 @@ const buildSummaryHtml = (appState) => {
   }
 
   return `
-    <div style="width:860px;max-width:860px;background:#ffffff;color:#222222;font-family:Arial,sans-serif;padding:30px 42px;">
+    <div style="box-sizing:border-box;width:860px;max-width:860px;background:#ffffff;color:#222222;font-family:Arial,sans-serif;padding:30px 42px;">
       <h2 style="margin:0 0 26px;text-align:center;font-size:21px;color:#77a2e8;line-height:1.65;">Fechamento de Caixa</h2>
       ${reportSections.join('')}
       <div style="margin-top:26px;text-align:center;font-size:12px;color:#7a7a7a;line-height:2;">${new Date().getFullYear()} - LordCarvel</div>
@@ -607,7 +607,7 @@ export function Home() {
               <div className="section-heading">
                 <h3 className="section-title">Imagem do Fechamento</h3>
                 <p className="section-description">
-                  A pre-visualizacao agora abre em escala reduzida e a ultima imagem fica salva no localStorage.
+                  A imagem agora e gerada em uma area isolada, sem zoom artificial, e a ultima pre-visualizacao continua salva no localStorage.
                 </p>
               </div>
 
@@ -624,7 +624,7 @@ export function Home() {
             </div>
 
             <div className="status-note">{savedPreviewText}</div>
-            <p className="hint-text">Escala aplicada na imagem: 75%. O reset limpa apenas os dados operacionais do dia.</p>
+            <p className="hint-text">A captura usa uma renderizacao dedicada para evitar sobreposicao de texto. O reset limpa apenas os dados operacionais do dia.</p>
           </article>
         </div>
       </section>
